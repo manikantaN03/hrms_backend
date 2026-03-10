@@ -1,0 +1,40 @@
+{{ app_name }} - Email Verification
+================================================================================
+
+Hello {{ user_name }},
+
+Thank you for registering with {{ app_name }}! We're excited to have you on board.
+
+To complete your registration and set up your password, please visit this link:
+
+{{ verification_link }}
+
+⚠️ IMPORTANT: This link will expire in {{ expiry_hours }} hours.
+
+YOUR REGISTRATION DETAILS
+--------------------------------------------------------------------------------
+Email:       {{ user_email }}
+Mobile:      {{ user_mobile }}
+Registered:  {{ registration_date }}
+
+WHAT HAPPENS NEXT?
+--------------------------------------------------------------------------------
+1. Click the verification link above
+2. You'll be redirected to create your password
+3. Once completed, you can log in to your account
+
+🔒 SECURITY NOTICE
+--------------------------------------------------------------------------------
+• For security, don't share this link with anyone
+• If you didn't register for this account, please ignore this email
+• This is an automated email - please don't reply to this address
+
+NEED HELP?
+--------------------------------------------------------------------------------
+Contact our support team at {{ support_email }}
+
+================================================================================
+This is an automated email from {{ app_name }}
+© {{ current_year }} {{ app_name }}. All rights reserved.
+123 Business Street, Suite 100, City, State 12345
+================================================================================

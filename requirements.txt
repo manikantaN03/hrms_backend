@@ -1,0 +1,128 @@
+# ============================================================================
+# HRMS Application - Python Dependencies
+# ============================================================================
+# This file contains all required Python packages for the HRMS application
+# Install with: pip install -r requirements.txt
+# ============================================================================
+
+# ============================================================================
+# Web Framework & ASGI Server
+# ============================================================================
+fastapi==0.110.0                  # Modern web framework for building APIs
+uvicorn==0.29.0                   # ASGI server for FastAPI
+python-multipart==0.0.9           # Form data parsing
+starlette==0.36.3                 # ASGI framework (FastAPI dependency)
+
+# ============================================================================
+# Database & ORM
+# ============================================================================
+sqlalchemy==2.0.29                # SQL toolkit and ORM
+psycopg2-binary==2.9.9            # PostgreSQL adapter
+alembic==1.13.1                   # Database migration tool
+greenlet==3.0.3                   # Lightweight concurrent programming
+
+# ============================================================================
+# Data Validation & Settings
+# ============================================================================
+pydantic==2.6.4                   # Data validation using Python type hints
+pydantic-settings==2.2.1          # Settings management
+pydantic-core==2.16.3             # Core validation logic
+annotated-types==0.6.0            # Type annotations support
+
+# ============================================================================
+# Security & Authentication
+# ============================================================================
+python-jose[cryptography]==3.3.0  # JWT token handling
+passlib[bcrypt]==1.7.4            # Password hashing
+bcrypt==3.2.2                     # Bcrypt hashing algorithm
+ecdsa==0.19.0                     # Elliptic curve cryptography
+pyasn1==0.6.0                     # ASN.1 types and codecs
+rsa==4.9                          # RSA encryption
+
+# ============================================================================
+# Email & Notifications
+# ============================================================================
+aiosmtplib==3.0.1                 # Async SMTP client
+jinja2==3.1.3                     # Template engine for emails
+MarkupSafe==2.1.5                 # Safe string handling for Jinja2
+
+# ============================================================================
+# PDF Generation
+# ============================================================================
+reportlab==4.0.7                  # PDF generation library
+Pillow>=9.0.0                     # Image processing (required by reportlab)
+
+# ============================================================================
+# Redis & Caching
+# ============================================================================
+redis==5.0.3                      # Redis client
+hiredis==2.3.2                    # High-performance Redis parser
+async-timeout==4.0.3              # Timeout context manager
+
+# ============================================================================
+# HTTP Client & Networking
+# ============================================================================
+httpx==0.27.0                     # Modern HTTP client
+httpcore==1.0.5                   # HTTP core functionality
+h11==0.14.0                       # HTTP/1.1 protocol implementation
+anyio==4.3.0                      # Async compatibility layer
+sniffio==1.3.1                    # Async library detection
+certifi==2024.2.2                 # SSL certificates
+
+# ============================================================================
+# ASGI Server Performance (Production)
+# ============================================================================
+websockets==12.0                  # WebSocket support
+httptools==0.6.1                  # Fast HTTP parsing
+watchfiles==0.21.0                # File watching for auto-reload
+# uvloop==0.19.0                  # Fast event loop (Unix only - auto-installs on Linux/macOS)
+
+# ============================================================================
+# Utilities & Helpers
+# ============================================================================
+python-dotenv==1.0.1              # Environment variable management
+email-validator==2.1.1            # Email validation
+idna==3.6                         # Internationalized domain names
+itsdangerous==2.1.2               # Secure data signing
+dnspython==2.6.1                  # DNS toolkit
+python-dateutil==2.9.0            # Date/time utilities
+psutil==5.9.8                     # System and process utilities
+
+# ============================================================================
+# Type Checking & Development
+# ============================================================================
+typing-extensions==4.10.0         # Backported type hints
+
+# ============================================================================
+# Data Processing (Setup & Import)
+# ============================================================================
+pandas>=2.0.0                     # Data analysis and CSV processing
+openpyxl>=3.0.0                   # Excel file support
+
+# ============================================================================
+# QR Code Generation
+# ============================================================================
+qrcode==7.4.2                     # QR code generation
+
+# ============================================================================
+# SMS Services
+# ============================================================================
+twilio==9.0.4                     # Twilio SMS service
+
+# ============================================================================
+# Additional Notes
+# ============================================================================
+# 1. Install all dependencies: pip install -r requirements.txt
+# 2. For production, consider pinning all versions (remove >= operators)
+# 3. uvloop auto-installs on Unix systems for better performance
+# 4. Some packages have sub-dependencies that are automatically installed
+# 5. Keep this file updated when adding new features
+
+# ============================================================================
+# Version Compatibility
+# ============================================================================
+# Python Version: 3.11+
+# PostgreSQL: 12+
+# Redis: 6+
+# Operating System: Windows, Linux, macOS
+

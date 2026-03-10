@@ -1,0 +1,5 @@
+# Additional dependencies needed only for database setup
+pandas>=2.0.0              # CSV data processing during setup
+openpyxl>=3.0.0            # Excel file support (optional)
+
+
