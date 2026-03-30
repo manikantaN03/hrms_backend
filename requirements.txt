@@ -24,9 +24,8 @@ greenlet==3.0.3                   # Lightweight concurrent programming
 # ============================================================================
 # Data Validation & Settings
 # ============================================================================
-pydantic==2.6.4                   # Data validation using Python type hints
-pydantic-settings==2.2.1          # Settings management
-pydantic-core==2.16.3             # Core validation logic
+pydantic==2.7.0
+pydantic-settings==2.2.1        # Core validation logic
 annotated-types==0.6.0            # Type annotations support
 
 # ============================================================================
