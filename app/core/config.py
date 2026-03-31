@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
     DB_USER: str = "postgres"
-    DB_PASSWORD: str = "123456789"
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD")
     DB_NAME: str = "levitica_hr"
     DATABASE_URL: Optional[str] = None
     
@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     DB_ECHO: bool = False
     
     # Security settings
-    SECRET_KEY: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+    SECRET_KEY: str = os.getenv("SECRET_KEY")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     
@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 16358
     REDIS_DB: int = 0
     REDIS_USERNAME: str = "default"
-    REDIS_PASSWORD: str = "Kv9nOUsZLD48hHkAeKJU2Ap2Cd19IqG3"
+    REDIS_PASSWORD: str = os.getenv("REDIS_PASSWORD")
     REDIS_DECODE_RESPONSES: bool = True
     REDIS_SSL: bool = True  # Redis Cloud requires SSL
     
@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     SMTP_USE_STARTTLS: bool = True
 
     SMTP_USERNAME: str = "apikey"
-    SMTP_PASSWORD: str = "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"
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD")
     SMTP_FROM_EMAIL: str = "kiranios456@gmail.com"
     SMTP_FROM_NAME: str = "Levitica HR System"
     SMTP_TIMEOUT: int = 30
@@ -92,7 +92,7 @@ class Settings(BaseSettings):
     
     # Twilio
     TWILIO_ACCOUNT_SID: Optional[str] = None
-    TWILIO_AUTH_TOKEN: Optional[str] = None
+    TWILIO_AUTH_TOKEN: Optional[str] = os.getenv("TWILIO_AUTH_TOKEN")
     TWILIO_PHONE_NUMBER: Optional[str] = None
     
     # MSG91
