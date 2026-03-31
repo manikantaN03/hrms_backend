@@ -12,6 +12,8 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from datetime import datetime
 import logging
+from app.core.database import engine
+from app.models import Base
 
 from .core.config import settings
 from .core.database import check_db_connection, close_db_connection
@@ -52,7 +54,13 @@ async def lifespan(app: FastAPI):
         logger.info("✓ Database connection established")
     else:
         logger.error("✗ Failed to connect to database")
-    
+     # CREATE TABLES IN RENDER DATABASE
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("✓ Database tables created successfully")
+    except Exception as e:
+        logger.error(f"Error creating tables: {e}")
+
     # Check Redis
     if redis_client.is_available():
         logger.info("✓ Redis connection established")
