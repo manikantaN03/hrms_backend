@@ -86,7 +86,7 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL")
     SMTP_FROM_NAME: str = "DCM by Levitica Technologies Pvt. Ltd."
     SMTP_TIMEOUT: int = 30
-    EMAIL_SEND_TIMEOUT: int = 30
+    EMAIL_SEND_TIMEOUT: int = 5
     
     # SMS Configuration
     SMS_PROVIDER: str = "twilio"  # Options: 'twilio', 'msg91', 'fast2sms'
