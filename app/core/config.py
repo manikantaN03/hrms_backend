@@ -74,16 +74,17 @@ class Settings(BaseSettings):
     # Email/SMTP configuration
 # SendGrid SMTP Configuration
 
-    SMTP_HOST: str = "smtp.sendgrid.net"
-    SMTP_PORT: int = 2525
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
 
-    SMTP_USE_TLS: bool = True
+    SMTP_USE_TLS: bool = False
     SMTP_USE_STARTTLS: bool = True
 
-    SMTP_USERNAME: str = "apikey"
+    SMTP_USERNAME: str = os.getenv("SMTP_USERNAME")
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD")
-    SMTP_FROM_EMAIL: str = "kiranios456@gmail.com"
-    SMTP_FROM_NAME: str = "Levitica HR System"
+
+    SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL")
+    SMTP_FROM_NAME: str = "DCM by Levitica Technologies Pvt. Ltd."
     SMTP_TIMEOUT: int = 30
     EMAIL_SEND_TIMEOUT: int = 30
     
