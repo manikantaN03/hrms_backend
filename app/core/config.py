@@ -72,16 +72,20 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # Email/SMTP configuration
-    SMTP_HOST: str = "mail.leviticatechnologies.com"
-    SMTP_PORT: int = 465
+# SendGrid SMTP Configuration
+
+    SMTP_HOST: str = "smtp.sendgrid.net"
+    SMTP_PORT: int = 2525
+
     SMTP_USE_TLS: bool = True
-    SMTP_USE_STARTTLS: bool = False
-    SMTP_USERNAME: str = "chandu.thota@leviticatechnologies.com"
-    SMTP_PASSWORD: str = "Chandu@1234"
-    SMTP_FROM_EMAIL: str = "chandu.thota@leviticatechnologies.com"
+    SMTP_USE_STARTTLS: bool = True
+
+    SMTP_USERNAME: str = "apikey"
+    SMTP_PASSWORD: str = "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"
+    SMTP_FROM_EMAIL: str = "kiranios456@gmail.com"
     SMTP_FROM_NAME: str = "Levitica HR System"
     SMTP_TIMEOUT: int = 30
-    EMAIL_SEND_TIMEOUT: int = 5
+    EMAIL_SEND_TIMEOUT: int = 30
     
     # SMS Configuration
     SMS_PROVIDER: str = "twilio"  # Options: 'twilio', 'msg91', 'fast2sms'
