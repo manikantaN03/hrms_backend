@@ -124,7 +124,10 @@ app = FastAPI(
     openapi_tags=[
         {"name": "User Registration", "description": "User registration and verification"},
         {"name": "Authentication", "description": "User authentication and session management"},
+        {"name": "Business Management", "description": "Business management operations"},
         {"name": "Dashboard", "description": "Dashboard statistics and overview"},
+        {"name": "Master Setup", "description": "Master data setup and configuration"},
+        {"name": "Setup", "description": "System setup and configuration"},
         {"name": "All Employees", "description": "Employee management and operations"},
         {"name": "Onboarding", "description": "Employee onboarding process"},
         {"name": "Separation", "description": "Employee separation and exit management"},
@@ -135,10 +138,9 @@ app = FastAPI(
         {"name": "Request", "description": "Employee requests and approvals"},
         {"name": "Payroll", "description": "Payroll processing and management"},
         {"name": "Reports", "description": "Reports and analytics"},
-        {"name": "Master Setup", "description": "Master data setup and configuration"},
-        {"name": "Setup", "description": "System setup and configuration"},
+    
         {"name": "CRM", "description": "Customer relationship management"},
-        {"name": "Business Management", "description": "Business management operations"},
+        
         {"name": "Project Management", "description": "Project management and tracking"},
         {"name": "Calendar Management", "description": "Calendar and scheduling"},
         {"name": "Notes Management", "description": "Notes and documentation"},

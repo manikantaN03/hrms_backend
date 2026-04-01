@@ -206,7 +206,7 @@ class EmailService:
                 "user_name": user_name,
                 "user_email": user_email,
                 "otp": otp,
-                "otp_expiry_minutes": 10,
+                "otp_expiry_minutes": 2,
                 "support_email": settings.SMTP_FROM_EMAIL,
                 "current_year": datetime.utcnow().year,
             }
@@ -341,7 +341,7 @@ Need help? Contact us at {context['support_email']}
                 "user_name": user_name,
                 "user_email": user_email,
                 "otp": otp,
-                "otp_expiry_minutes": 10,
+                "otp_expiry_minutes": 2,
                 "support_email": settings.SMTP_FROM_EMAIL,
                 "current_year": datetime.utcnow().year,
             }

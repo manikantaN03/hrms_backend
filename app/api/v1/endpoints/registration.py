@@ -186,7 +186,7 @@ def verify_otp(
     Verify OTP code.
     
     **OTP Rules:**
-    - Valid for 10 minutes
+    - Valid for 2 minutes
     - Maximum 5 attempts
     - Must be exactly 6 digits
     
