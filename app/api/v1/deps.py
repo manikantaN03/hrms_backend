@@ -70,6 +70,13 @@ def get_current_user(
         )
     
     # Decode and validate token
+    # Log a short, safe summary of the token for debugging (avoid full token in logs)
+    try:
+        token_summary = f"{token[:8]}... (len={len(token)})"
+    except Exception:
+        token_summary = "<unavailable>"
+    logger.debug(f"Decoding token from {auth_method}: {token_summary}")
+
     payload = decode_access_token(token)
     if not payload:
         logger.warning(f"Authentication failed: Invalid/expired token via {auth_method}")
