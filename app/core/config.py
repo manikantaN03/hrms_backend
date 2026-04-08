@@ -71,15 +71,15 @@ class Settings(BaseSettings):
     SESSION_EXPIRE_MINUTES: int = 1440  # 24 hours
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
-    # Email/SMTP configuration
-    SMTP_HOST: str = "mail.leviticatechnologies.com"
-    SMTP_PORT: int = 465
-    SMTP_USE_TLS: bool = True
-    SMTP_USE_STARTTLS: bool = False
-    SMTP_USERNAME: str = "kallamadikowsikreddy@gmail.com"
-    SMTP_PASSWORD: str = "npsn xpmr iwtp aojp"
-    SMTP_FROM_EMAIL: str = "kallamadikowsikreddy@gmail.com"
-    SMTP_FROM_NAME: str = "Levitica HR System"
+# SendGrid SMTP Configuration
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USE_TLS: bool = False
+    SMTP_USE_STARTTLS: bool = True
+    SMTP_USERNAME: str = os.getenv("SMTP_USERNAME")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD")
+    SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL")
+    SMTP_FROM_NAME: str = "DCM by Levitica Technologies Pvt. Ltd."
     SMTP_TIMEOUT: int = 30
     EMAIL_SEND_TIMEOUT: int = 5
     
