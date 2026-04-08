@@ -87,7 +87,6 @@ async def login(
             httponly=True,  # Prevents JavaScript access (XSS protection)
             secure=not settings.DEBUG,  # HTTPS only in production
             samesite="none",  # CSRF protection (allows navigation)
-            secure=true,
             max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # Convert to seconds
             path="/",  # Available across entire domain
             domain=None  # Current domain only
