@@ -20,7 +20,7 @@ from app.api.v1.setup.salary_and_deductions.salary_structure_rules import router
 from app.api.v1.setup.salary_and_deductions.time_salary import router as time_salary_router
 from app.api.v1.setup.salary_and_deductions.overtime import router as overtime_router
 from .setup.Integrations import emailsettings, gatekeeper, sqlserver, api_access, sap_mapping
-from app.api.v1.setup.Integrations import biometric_sync
+from app.api.v1.setup.Integrations import biometricsync
 from app.api.v1.setup.employeeselfservice import approvals, user_management
 from app.api.v1.setup import maintenance
 from app.api.v1.setup.leaves_statutory import (
@@ -90,133 +90,26 @@ api_router.include_router(
     prefix="/auth",
     tags=["Authentication"]
 )
-
 # ============================================================================
-# 3. Dashboard
-# ============================================================================
-
-api_router.include_router(
-    dashboard.router,
-    prefix="/dashboard",
-    tags=["Dashboard"]
-)
-
-# ============================================================================
-# 4. All Employees (Consolidated - Single Source of Truth)
+# 16. Master Setup (Direct endpoints used by frontend)
 # ============================================================================
 
 api_router.include_router(
-    allemployees.router,
-    prefix="/allemployees",
-    tags=["All Employees"]
+    master_setup.router,
+    tags=["Master Setup"]
 )
 
 # ============================================================================
-# 5. Onboarding
+# 16.1. Workflows (Under Master Setup)
 # ============================================================================
 
 api_router.include_router(
-    onboarding.router,
-    prefix="/onboarding",
-    tags=["Onboarding"]
+    workflows_router,
+    prefix="/workflows",
+    tags=["Master Setup"],
+    dependencies=[Depends(get_current_admin)],
 )
-
-# ============================================================================
-# 6. Separation
-# ============================================================================
-
-api_router.include_router(
-    separation.router,
-    prefix="/separation",
-    tags=["Separation"]
-)
-
-# ============================================================================
-# 7. Attendance
-# ============================================================================
-
-api_router.include_router(
-    attendance.router,
-    prefix="/attendance",
-    tags=["Attendance"]
-)
-
-# ============================================================================
-# 8. Data Capture
-# ============================================================================
-
-api_router.include_router(
-    datacapture.router,
-    prefix="/datacapture",
-    tags=["Data Capture"]
-)
-
-# ============================================================================
-# 9. Bulk Update
-# ============================================================================
-
-api_router.include_router(
-    bulkupdate.router,
-    prefix="/bulkupdate",
-    tags=["Bulk Update"]
-)
-
-# ============================================================================
-# 10. HR Management
-# ============================================================================
-
-api_router.include_router(
-    hrmanagement.router,
-    prefix="/hrmanagement",
-    tags=["HR Management"]
-)
-
-# ============================================================================
-# 11. Request
-# ============================================================================
-
-api_router.include_router(
-    requests.router,
-    prefix="/requests",
-    tags=["Request"]
-)
-
-# ============================================================================
-# 12. Support (Remote Sessions, Help)
-# ============================================================================
-
-api_router.include_router(
-    support.router,
-    prefix="/support",
-    tags=["Support"]
-)
-
-api_router.include_router(
-    help.router,
-    prefix="/help",
-    tags=["Help & Documentation"]
-)
-
-# ============================================================================
-# 13. Payroll
-# ============================================================================
-
-api_router.include_router(
-    payroll.router,
-    prefix="/payroll",
-    tags=["Payroll"]
-)
-
-# ============================================================================
-# 14. Reports
-# ============================================================================
-
-api_router.include_router(
-    reports.router,
-    prefix="/reports",
-    tags=["Reports"]
-)
-
+ 
 # ============================================================================
 # 15. Setup
 # ============================================================================
@@ -276,161 +169,6 @@ api_router.include_router(
     overtime_router,
     prefix="/setup/salarysetup/overtime",
     tags=["Setup"]
-)
-
-# ============================================================================
-# 16. Master Setup (Direct endpoints used by frontend)
-# ============================================================================
-
-api_router.include_router(
-    master_setup.router,
-    tags=["Master Setup"]
-)
-
-# ============================================================================
-# 16.1. Workflows (Under Master Setup)
-# ============================================================================
-
-api_router.include_router(
-    workflows_router,
-    prefix="/workflows",
-    tags=["Master Setup"],
-    dependencies=[Depends(get_current_admin)],
-)
-
-# ============================================================================
-# 16. CRM
-# ============================================================================
-
-api_router.include_router(
-    crm.router,
-    prefix="/crm",
-    tags=["CRM"]
-)
-
-# ============================================================================
-# Business Management (Admin & Superadmin)
-# ============================================================================
-
-api_router.include_router(
-    business.router,
-    prefix="/businesses",
-    tags=["Business Management"]
-)
-
-# ============================================================================
-# Project Management
-# ============================================================================
-
-api_router.include_router(
-    project_management.router,
-    prefix="/project-management",
-    tags=["Project Management"]
-)
-
-# ============================================================================
-# Calendar Management
-# ============================================================================
-
-api_router.include_router(
-    calendar.router,
-    prefix="/calendar",
-    tags=["Calendar Management"]
-)
-
-# ============================================================================
-# Notes Management
-# ============================================================================
-
-api_router.include_router(
-    notes.router,
-    prefix="/notes",
-    tags=["Notes Management"]
-)
-
-# ============================================================================
-# Profile Management
-# ============================================================================
-
-api_router.include_router(
-    profile.router,
-    prefix="/profile",
-    tags=["Profile Management"]
-)
-
-# ============================================================================
-# User Preferences
-# ============================================================================
-
-api_router.include_router(
-    preferences.router,
-    tags=["User Preferences"]
-)
-
-# ============================================================================
-# TODO/Tasks Management
-# ============================================================================
-
-api_router.include_router(
-    todo.router,
-    prefix="/todo",
-    tags=["TODO/Tasks"]
-)
-
-# ============================================================================
-# Superadmin Endpoints
-# ============================================================================
-
-api_router.include_router(
-    superadmin.router,
-    prefix="/superadmin",
-    tags=["Superadmin"]
-)
-
-api_router.include_router(
-    subscriptions.router,
-    prefix="/subscriptions",
-    tags=["Subscriptions"]
-)
-
-api_router.include_router(
-    packages.router,
-    prefix="/superadmin/packages",
-    tags=["Packages"]
-)
-
-api_router.include_router(
-    domain.router,
-    prefix="/superadmin/domain",
-    tags=["Domain Management"]
-)
-
-api_router.include_router(
-    purchase_transaction.router,
-    prefix="/superadmin/purchase-transactions",
-    tags=["Purchase Transaction Management"]
-)
-
-# ============================================================================
-# File Upload & Document Management
-# ============================================================================
-
-api_router.include_router(
-    files.router,
-    prefix="/upload",
-    tags=["File Upload"]
-)
-
-api_router.include_router(
-    health.router,
-    prefix="/health",
-    tags=["System"]
-)
-
-api_router.include_router(
-    dev.router,
-    prefix="/dev",
-    tags=["Developer"]
 )
 
 # ============================================================================
@@ -569,7 +307,7 @@ api_router.include_router(
 )
 
 api_router.include_router(
-    biometric_sync.router,
+    biometricsync.router,
     prefix="/setup",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
@@ -613,6 +351,269 @@ api_router.include_router(
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
+# ============================================================================
+# 3. Dashboard
+# ============================================================================
+
+api_router.include_router(
+    dashboard.router,
+    prefix="/dashboard",
+    tags=["Dashboard"]
+)
+
+# ============================================================================
+# 4. All Employees (Consolidated - Single Source of Truth)
+# ============================================================================
+
+api_router.include_router(
+    allemployees.router,
+    prefix="/allemployees",
+    tags=["All Employees"]
+)
+
+# ============================================================================
+# 5. Onboarding
+# ============================================================================
+
+api_router.include_router(
+    onboarding.router,
+    prefix="/onboarding",
+    tags=["Onboarding"]
+)
+
+# ============================================================================
+# 6. Separation
+# ============================================================================
+
+api_router.include_router(
+    separation.router,
+    prefix="/separation",
+    tags=["Separation"]
+)
+
+# ============================================================================
+# 7. Attendance
+# ============================================================================
+
+api_router.include_router(
+    attendance.router,
+    prefix="/attendance",
+    tags=["Attendance"]
+)
+
+# ============================================================================
+# 8. Data Capture
+# ============================================================================
+
+api_router.include_router(
+    datacapture.router,
+    prefix="/datacapture",
+    tags=["Data Capture"]
+)
+
+# ============================================================================
+# 9. Bulk Update
+# ============================================================================
+
+api_router.include_router(
+    bulkupdate.router,
+    prefix="/bulkupdate",
+    tags=["Bulk Update"]
+)
+
+# ============================================================================
+# 10. HR Management
+# ============================================================================
+
+api_router.include_router(
+    hrmanagement.router,
+    prefix="/hrmanagement",
+    tags=["HR Management"]
+)
+
+# ============================================================================
+# 11. Request
+# ============================================================================
+
+api_router.include_router(
+    requests.router,
+    prefix="/requests",
+    tags=["Request"]
+)
+
+# ============================================================================
+# 12. Support (Remote Sessions, Help)
+# ============================================================================
+
+api_router.include_router(
+    support.router,
+    prefix="/support",
+    tags=["Support"]
+)
+
+api_router.include_router(
+    help.router,
+    prefix="/help",
+    tags=["Help & Documentation"]
+)
+
+# ============================================================================
+# 13. Payroll
+# ============================================================================
+
+api_router.include_router(
+    payroll.router,
+    prefix="/payroll",
+    tags=["Payroll"]
+)
+
+# ============================================================================
+# 14. Reports
+# ============================================================================
+
+api_router.include_router(
+    reports.router,
+    prefix="/reports",
+    tags=["Reports"]
+)
+
+
+# ============================================================================
+# 16. CRM
+# ============================================================================
+
+api_router.include_router(
+    crm.router,
+    prefix="/crm",
+    tags=["CRM"]
+)
+
+# ============================================================================
+# Business Management (Admin & Superadmin)
+# ============================================================================
+
+api_router.include_router(
+    business.router,
+    prefix="/businesses",
+    tags=["Business Management"]
+)
+
+# ============================================================================
+# Project Management
+# ============================================================================
+
+api_router.include_router(
+    project_management.router,
+    prefix="/project-management",
+    tags=["Project Management"]
+)
+
+# ============================================================================
+# Calendar Management
+# ============================================================================
+
+api_router.include_router(
+    calendar.router,
+    prefix="/calendar",
+    tags=["Calendar Management"]
+)
+
+# ============================================================================
+# Notes Management
+# ============================================================================
+
+api_router.include_router(
+    notes.router,
+    prefix="/notes",
+    tags=["Notes Management"]
+)
+
+# ============================================================================
+# Profile Management
+# ============================================================================
+
+api_router.include_router(
+    profile.router,
+    prefix="/profile",
+    tags=["Profile Management"]
+)
+
+# ============================================================================
+# User Preferences
+# ============================================================================
+
+api_router.include_router(
+    preferences.router,
+    tags=["User Preferences"]
+)
+
+# ============================================================================
+# TODO/Tasks Management
+# ============================================================================
+
+api_router.include_router(
+    todo.router,
+    prefix="/todo",
+    tags=["TODO/Tasks"]
+)
+
+# ============================================================================
+# Superadmin Endpoints
+# ============================================================================
+
+api_router.include_router(
+    superadmin.router,
+    prefix="/superadmin",
+    tags=["Superadmin"]
+)
+
+api_router.include_router(
+    subscriptions.router,
+    prefix="/subscriptions",
+    tags=["Subscriptions"]
+)
+
+api_router.include_router(
+    packages.router,
+    prefix="/superadmin/packages",
+    tags=["Packages"]
+)
+
+api_router.include_router(
+    domain.router,
+    prefix="/superadmin/domain",
+    tags=["Domain Management"]
+)
+
+api_router.include_router(
+    purchase_transaction.router,
+    prefix="/superadmin/purchase-transactions",
+    tags=["Purchase Transaction Management"]
+)
+
+# ============================================================================
+# File Upload & Document Management
+# ============================================================================
+
+api_router.include_router(
+    files.router,
+    prefix="/upload",
+    tags=["File Upload"]
+)
+
+api_router.include_router(
+    health.router,
+    prefix="/health",
+    tags=["System"]
+)
+
+api_router.include_router(
+    dev.router,
+    prefix="/dev",
+    tags=["Developer"]
+)
+
+
 
 # ============================================================================
 # System Statistics (Real-time Backend Analysis)

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.config import settings
+from app.models.user import User
 from app.schemas.user import (
     UnifiedRegistrationRequest,
     UserRegistrationResponse,
@@ -185,7 +186,7 @@ def verify_otp(
     Verify OTP code.
     
     **OTP Rules:**
-    - Valid for 10 minutes
+    - Valid for 2 minutes
     - Maximum 5 attempts
     - Must be exactly 6 digits
     
@@ -246,6 +247,31 @@ async def resend_otp(
     """
     registration_service = RegistrationService(db)
     return await registration_service.resend_otp(resend_data)
+
+@router.get("/check-otp", tags=["Developer"])
+def check_otp(email: str, db: Session = Depends(get_db)):
+    if not settings.DEBUG:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This endpoint is available only in debug mode."
+        )
+
+    user = db.query(User).filter(User.email == email).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    return {
+        "email": user.email,
+        "otp": user.email_otp,
+        "otp_created_at": user.otp_created_at,
+        "otp_attempts": user.otp_attempts,
+        "is_email_verified": user.is_email_verified,
+        "message": "OTP details fetched successfully"
+    }
 
 
 @router.post("/send-otp-frontend", operation_id="send_otp_frontend_compatible")

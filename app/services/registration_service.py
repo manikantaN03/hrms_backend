@@ -54,52 +54,124 @@ class RegistrationService:
         registration_data: UnifiedRegistrationRequest
     ) -> UserRegistrationResponse:
         """
-        Register a new admin user.
+        Register a new admin user or continue incomplete registration.
         
-        **Registration Flow:**
-        - Admin provides: first name, last name, email, mobile
-        - NO company details required
-        - All registered users get ADMIN role
-        - SUPERADMIN cannot be created via API
-        
-        Args:
-            registration_data: Basic registration details (name, email, mobile)
-        
-        Returns:
-            Registration response with user info
-        
-        Raises:
-            HTTPException: If email/mobile exists or validation fails
+        Behavior:
+        - If email is fully registered -> 409 Conflict
+        - If email exists but is not verified -> regenerate OTP and resend
+        - If email exists, verified, but password not set -> ask user to set password
+        - If mobile belongs to another account -> 409 Conflict
         """
-        # Validate uniqueness
-        if self.user_repo.email_exists(registration_data.email):
-            logger.warning(f"Registration failed: Email exists - {registration_data.email}")
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Email '{registration_data.email}' is already registered."
-            )
-        
-        if self.user_repo.mobile_exists(registration_data.mobile):
-            logger.warning(f"Registration failed: Mobile exists - {registration_data.mobile}")
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Mobile number '{registration_data.mobile}' is already registered."
-            )
-        
         try:
-            # Generate OTP for email verification
+            existing_user = self.user_repo.get_by_email(registration_data.email)
+
+            # -----------------------------------------------------------------
+            # Case 1: User with this email already exists
+            # -----------------------------------------------------------------
+            if existing_user:
+                # Fully completed registration
+                if existing_user.is_email_verified and existing_user.hashed_password:
+                    logger.warning(
+                        f"Registration failed: Email already fully registered - {registration_data.email}"
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=f"Email '{registration_data.email}' is already registered. Please login."
+                    )
+
+                # Check if mobile belongs to some OTHER user
+                mobile_owner = self.db.query(User).filter(
+                    User.mobile == registration_data.mobile,
+                    User.id != existing_user.id
+                ).first()
+
+                if mobile_owner:
+                    logger.warning(
+                        f"Registration failed: Mobile exists on another account - {registration_data.mobile}"
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=f"Mobile number '{registration_data.mobile}' is already registered."
+                    )
+
+                # Update incomplete user details
+                full_name = f"{registration_data.first_name} {registration_data.last_name}"
+                existing_user.name = full_name
+                existing_user.mobile = registration_data.mobile
+
+                # Email not verified yet -> regenerate OTP and resend
+                if not existing_user.is_email_verified:
+                    otp = otp_manager.generate_otp()
+                    existing_user.email_otp = otp
+                    existing_user.otp_created_at = datetime.now(timezone.utc)
+                    existing_user.otp_attempts = 0
+                    existing_user.role = UserRole.ADMIN
+                    existing_user.status = UserStatus.ACTIVE
+
+                    self.db.commit()
+                    self.db.refresh(existing_user)
+
+                    try:
+                        await asyncio.wait_for(
+                            email_service.send_otp_email(
+                                user_email=existing_user.email,
+                                user_name=full_name,
+                                otp=otp
+                            ),
+                            timeout=settings.EMAIL_SEND_TIMEOUT
+                        )
+                        logger.info(f"OTP re-sent during re-registration: {existing_user.email}")
+                    except asyncio.TimeoutError:
+                        logger.warning(f"Email sending timed out for {existing_user.email}")
+                    except Exception as email_error:
+                        logger.error(f"Email error for {existing_user.email}: {str(email_error)}")
+
+                    return UserRegistrationResponse(
+                        message=(
+                            f"Registration already exists but email is not verified. "
+                            f"A new 6-digit verification code has been sent to {existing_user.email}. "
+                            "Please check your inbox."
+                        ),
+                        user=UserResponse.model_validate(existing_user)
+                    )
+
+                # Email verified, but password not set yet
+                if existing_user.is_email_verified and not existing_user.hashed_password:
+                    self.db.commit()
+                    self.db.refresh(existing_user)
+
+                    logger.info(
+                        f"Registration continued: Email already verified, password pending - {existing_user.email}"
+                    )
+
+                    return UserRegistrationResponse(
+                        message=(
+                            f"Email {existing_user.email} is already verified. "
+                            "Please create your password to complete registration."
+                        ),
+                        user=UserResponse.model_validate(existing_user)
+                    )
+
+            # -----------------------------------------------------------------
+            # Case 2: Fresh registration
+            # -----------------------------------------------------------------
+            if self.user_repo.mobile_exists(registration_data.mobile):
+                logger.warning(f"Registration failed: Mobile exists - {registration_data.mobile}")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Mobile number '{registration_data.mobile}' is already registered."
+                )
+
             otp = otp_manager.generate_otp()
             otp_created_at = datetime.now(timezone.utc)
-            
-            # Build user data - ONLY basic fields
             full_name = f"{registration_data.first_name} {registration_data.last_name}"
-            
+
             user_data = {
                 "name": full_name,
                 "email": registration_data.email,
                 "mobile": registration_data.mobile,
-                "hashed_password": None,  # Set after email verification
-                "role": UserRole.ADMIN,  # Always ADMIN for registrations
+                "hashed_password": None,
+                "role": UserRole.ADMIN,
                 "status": UserStatus.ACTIVE,
                 "is_email_verified": False,
                 "email_otp": otp,
@@ -107,17 +179,14 @@ class RegistrationService:
                 "otp_attempts": 0,
                 "currency": "USD",
                 "language": "English",
-                # NO company fields - removed completely
             }
-            
-            # Create user in database
+
             new_user = self.user_repo.create(user_data)
             logger.info(
                 f"Admin registered (pending verification): {new_user.email} "
                 f"(ID: {new_user.id}, Role: {new_user.role.value})"
             )
-            
-            # Send OTP email (non-blocking with timeout)
+
             try:
                 await asyncio.wait_for(
                     email_service.send_otp_email(
@@ -132,19 +201,16 @@ class RegistrationService:
                 logger.warning(f"Email sending timed out for {new_user.email}")
             except Exception as email_error:
                 logger.error(f"Email error for {new_user.email}: {str(email_error)}")
-            
-            # Return success immediately
-            user_response = UserResponse.model_validate(new_user)
-            
+
             return UserRegistrationResponse(
                 message=(
                     f"Admin registration successful! "
                     f"A 6-digit verification code has been sent to {new_user.email}. "
                     "Please check your inbox."
                 ),
-                user=user_response
+                user=UserResponse.model_validate(new_user)
             )
-            
+
         except HTTPException:
             raise
         except Exception as e:
@@ -245,6 +311,7 @@ class RegistrationService:
             user.otp_attempts = 0
             
             self.db.commit()
+            self.db.refresh(user)
             
             try:
                 await asyncio.wait_for(
@@ -257,6 +324,8 @@ class RegistrationService:
                 )
             except asyncio.TimeoutError:
                 logger.warning(f"Email timeout for {user.email}")
+            except Exception as email_error:
+                logger.error(f"Email error while resending OTP to {user.email}: {str(email_error)}")
             
             logger.info(f"OTP resent to: {user.email}")
             
