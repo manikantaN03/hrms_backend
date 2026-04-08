@@ -76,9 +76,9 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 465
     SMTP_USE_TLS: bool = True
     SMTP_USE_STARTTLS: bool = False
-    SMTP_USERNAME: str = "testmail@leviticatechnologies.com"
-    SMTP_PASSWORD: str = "Levitica@1434"
-    SMTP_FROM_EMAIL: str = "testmail@leviticatechnologies.com"
+    SMTP_USERNAME: str = "kallamadikowsikreddy@gmail.com"
+    SMTP_PASSWORD: str = "npsn xpmr iwtp aojp"
+    SMTP_FROM_EMAIL: str = "kallamadikowsikreddy@gmail.com"
     SMTP_FROM_NAME: str = "Levitica HR System"
     SMTP_TIMEOUT: int = 30
     EMAIL_SEND_TIMEOUT: int = 5
