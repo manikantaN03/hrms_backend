@@ -71,17 +71,26 @@ class Settings(BaseSettings):
     SESSION_EXPIRE_MINUTES: int = 1440  # 24 hours
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
-# SendGrid SMTP Configuration
-    SMTP_HOST: str = "smtp.gmail.com"
-    SMTP_PORT: int = 587
+    # ============================================================================
+    # SENDGRID SMTP CONFIGURATION
+    # ============================================================================
+    SMTP_HOST: str = "smtp.sendgrid.net"
+    SMTP_PORT: int = 2525
     SMTP_USE_TLS: bool = False
     SMTP_USE_STARTTLS: bool = True
-    SMTP_USERNAME: str = os.getenv("SMTP_USERNAME")
-    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD")
+
+    # IMPORTANT: SendGrid uses "apikey" as username
+    SMTP_USERNAME: str = "apikey"
+
+    # Load API key from .env
+    SMTP_PASSWORD: str = os.getenv("SENDGRID_API_KEY")
+
+    # Sender email (must be verified in SendGrid)
     SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL")
     SMTP_FROM_NAME: str = "DCM by Levitica Technologies Pvt. Ltd."
+
     SMTP_TIMEOUT: int = 30
-    EMAIL_SEND_TIMEOUT: int = 5
+    EMAIL_SEND_TIMEOUT: int = 30
     
     # SMS Configuration
     SMS_PROVIDER: str = "twilio"  # Options: 'twilio', 'msg91', 'fast2sms'
