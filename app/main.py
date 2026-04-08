@@ -12,8 +12,6 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from datetime import datetime
 import logging
-import subprocess
-import sys
 from app.core.database import engine
 from app.models import Base
 
@@ -50,21 +48,7 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     logger.info("Starting Levitica HR Management System...")
-        # RUN SETUP SCRIPT AUTOMATICALLY
-    try:
-        setup_script = Path("scripts/setup.py")
-
-        if setup_script.exists():
-            logger.info("Running setup script...")
-            subprocess.run([sys.executable, str(setup_script)], check=True)
-            logger.info("✓ setup.py executed successfully")
-        else:
-            logger.warning("setup.py not found in scripts folder")
-
-    except Exception as e:
-        logger.error(f"Error running setup.py: {e}")
-
-
+    
     # Check database
     if check_db_connection():
         logger.info("✓ Database connection established")
