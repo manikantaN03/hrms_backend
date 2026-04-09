@@ -292,7 +292,7 @@ async def logout(
         domain=None,
         secure=not settings.DEBUG,
         httponly=True,
-        samesite="lax"
+        samesite="none"
     )
     
     # Also set an expired cookie to force removal
@@ -301,7 +301,7 @@ async def logout(
         value="",
         httponly=True,
         secure=not settings.DEBUG,
-        samesite="lax",
+        samesite="none",
         max_age=0,  # Expire immediately
         expires=0,   # Expire immediately
         path="/"
@@ -334,7 +334,7 @@ async def refresh_token(
         value=new_token,
         httponly=True,
         secure=not settings.DEBUG,
-        samesite="lax",
+        samesite="none",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/"
     )
