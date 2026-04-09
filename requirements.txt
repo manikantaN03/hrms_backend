@@ -73,7 +73,7 @@ certifi==2024.2.2                 # SSL certificates
 # ============================================================================
 websockets==12.0                  # WebSocket support
 httptools==0.6.1                  # Fast HTTP parsing
-watchfiles==0.21.0                # File watching for auto-reload
+watchfiles==0.19.0                # File watching for auto-reload
 # uvloop==0.19.0                  # Fast event loop (Unix only - auto-installs on Linux/macOS)
 
 # ============================================================================
