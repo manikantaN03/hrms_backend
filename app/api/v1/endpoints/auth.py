@@ -85,7 +85,7 @@ async def login(
             key="access_token",
             value=token_response.access_token,
             httponly=True,  # Prevents JavaScript access (XSS protection)
-            secure=not settings.DEBUG,  # HTTPS only in production
+            secure=True,  # HTTPS only in production
             samesite="none",  # CSRF protection (allows navigation)
             max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # Convert to seconds
             path="/",  # Available across entire domain
@@ -300,7 +300,7 @@ async def logout(
         key="access_token",
         value="",
         httponly=True,
-        secure=not settings.DEBUG,
+        secure=True,
         samesite="none",
         max_age=0,  # Expire immediately
         expires=0,   # Expire immediately
@@ -333,7 +333,7 @@ async def refresh_token(
         key="access_token",
         value=new_token,
         httponly=True,
-        secure=not settings.DEBUG,
+        secure=True,
         samesite="none",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/"
