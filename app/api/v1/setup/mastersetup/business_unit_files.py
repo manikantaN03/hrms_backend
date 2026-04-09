@@ -105,7 +105,7 @@ def upload_header_image(
     unit = _get_unit_and_business(db, unit_id, business_id)
 
     filename = _save_file_to_disk(file, BU_HEADERS_DIR)
-    file_url = f"{BASE_URL}/{settings.UPLOAD_DIR}/business_units/headers/{filename}"
+    file_url = f"/{settings.UPLOAD_DIR}/business_units/headers/{filename}"
 
     repo = BusinessUnitRepository(db)
     repo.update(unit, {"header_image_url": file_url})
