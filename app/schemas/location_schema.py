@@ -9,6 +9,10 @@ class LocationBase(BaseModel):
     locationHead: Optional[str] = None   # ✅ RENAMED
     deputyHead: Optional[str] = None
     isDefault: bool = False
+     lat: Optional[float] = None
+    lng: Optional[float] = None
+    placeId: Optional[str] = None
+
     mapUrl: Optional[str] = None
 
 
@@ -28,6 +32,10 @@ class LocationUpdate(BaseModel):
     locationHead: Optional[str] = None   #  RENAMED
     deputyHead: Optional[str] = None
     isDefault: Optional[bool] = None
+     lat: Optional[float] = None
+    lng: Optional[float] = None
+    placeId: Optional[str] = None
+
     mapUrl: Optional[str] = None
 
 

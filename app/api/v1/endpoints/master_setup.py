@@ -71,6 +71,7 @@ from app.schemas.employee_code_config import (
 from app.schemas.exit_reason import (
     ExitReasonCreate, ExitReasonUpdate, ExitReasonResponse
 )
+from app.utils.map_utils import generate_map_url
 
 router = APIRouter()
 
@@ -584,6 +585,13 @@ async def create_location(
         db.query(Location).filter(
             Location.business_id == business_id
         ).update({"is_default": False})
+
+       map_url = location.map_url
+       if hasattr(location, "lat") and hasattr(location, "lng");
+       if location.lat and location.lng;
+       map_url = generate_map_url(location.lat, location.lng)
+       elif location.map_url and "maps.app.google.gl" in location.map_url;
+       map_url = f"https://www.google.com/maps?q={location.name}&output=embed" 
     
     # Create new location
     new_location = Location(
@@ -649,6 +657,17 @@ async def update_location(
     
     # Update fields
     update_data = location.model_dump(exclude_unset=True)
+
+    #  Handle map URL generation
+if "lat" in update_data and "lng" in update_data:
+    if update_data["lat"] and update_data["lng"]:
+        update_data["map_url"] = generate_map_url(
+            update_data["lat"], update_data["lng"]
+        )
+
+elif "map_url" in update_data:
+    if "maps.app.goo.gl" in update_data["map_url"]:
+        update_data["map_url"] = f"https://www.google.com/maps?q={existing_loc.name}&output=embed"
     
     # If setting as default, unset other defaults
     if update_data.get("is_default"):
