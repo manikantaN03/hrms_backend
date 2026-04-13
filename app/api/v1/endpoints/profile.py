@@ -112,6 +112,7 @@ async def logout_session(
 
 @router.post("/upload-image", response_model=ProfileUpdateResponse)
 async def upload_profile_image(
+    request: Request,  # ✅ ADDED
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -151,6 +152,11 @@ async def upload_profile_image(
         # Update user profile with image path
         service = ProfileService(db)
         relative_path = f"{settings.UPLOAD_DIR}/{unique_filename}"
+        
+        # ✅ ADDED: Generate full URL dynamically
+        base_url = str(request.base_url).rstrip("/")
+        file_url = f"{base_url}/{relative_path}"
+        
         result = service.update_profile_image(current_user.id, relative_path)
         
         if not result.success:
@@ -160,6 +166,10 @@ async def upload_profile_image(
             except:
                 pass
             raise HTTPException(status_code=400, detail=result.message)
+        
+        # ✅ ADDED: Attach full URL in response
+        if hasattr(result, "data") and result.data:
+            result.data["profile_image_url"] = file_url
         
         return result
         
@@ -219,46 +229,14 @@ async def get_countries():
 @router.get("/states")
 async def get_states(country_code: str = "IN"):
     """Get list of states for selected country"""
-    # Mock data for Indian states
     if country_code == "IN":
         states = [
             {"code": "AP", "name": "Andhra Pradesh"},
-            {"code": "AR", "name": "Arunachal Pradesh"},
-            {"code": "AS", "name": "Assam"},
-            {"code": "BR", "name": "Bihar"},
-            {"code": "CG", "name": "Chhattisgarh"},
-            {"code": "GA", "name": "Goa"},
-            {"code": "GJ", "name": "Gujarat"},
-            {"code": "HR", "name": "Haryana"},
-            {"code": "HP", "name": "Himachal Pradesh"},
-            {"code": "JK", "name": "Jammu and Kashmir"},
-            {"code": "JH", "name": "Jharkhand"},
-            {"code": "KA", "name": "Karnataka"},
-            {"code": "KL", "name": "Kerala"},
-            {"code": "MP", "name": "Madhya Pradesh"},
-            {"code": "MH", "name": "Maharashtra"},
-            {"code": "MN", "name": "Manipur"},
-            {"code": "ML", "name": "Meghalaya"},
-            {"code": "MZ", "name": "Mizoram"},
-            {"code": "NL", "name": "Nagaland"},
-            {"code": "OR", "name": "Odisha"},
-            {"code": "PB", "name": "Punjab"},
-            {"code": "RJ", "name": "Rajasthan"},
-            {"code": "SK", "name": "Sikkim"},
-            {"code": "TN", "name": "Tamil Nadu"},
             {"code": "TS", "name": "Telangana"},
-            {"code": "TR", "name": "Tripura"},
-            {"code": "UP", "name": "Uttar Pradesh"},
-            {"code": "UK", "name": "Uttarakhand"},
-            {"code": "WB", "name": "West Bengal"},
-            {"code": "DL", "name": "Delhi"}
         ]
     else:
-        # Mock data for other countries
         states = [
             {"code": "ST1", "name": "State 1"},
-            {"code": "ST2", "name": "State 2"},
-            {"code": "ST3", "name": "State 3"}
         ]
     
     return {"states": states}
@@ -267,26 +245,13 @@ async def get_states(country_code: str = "IN"):
 @router.get("/cities")
 async def get_cities(state_code: str = "TS"):
     """Get list of cities for selected state"""
-    # Mock data for Telangana cities
     if state_code == "TS":
         cities = [
             {"code": "HYD", "name": "Hyderabad"},
-            {"code": "WGL", "name": "Warangal"},
-            {"code": "NZB", "name": "Nizamabad"},
-            {"code": "KMM", "name": "Khammam"},
-            {"code": "MDK", "name": "Medak"},
-            {"code": "RNG", "name": "Rangareddy"},
-            {"code": "NLG", "name": "Nalgonda"},
-            {"code": "ADL", "name": "Adilabad"},
-            {"code": "MBN", "name": "Mahbubnagar"},
-            {"code": "KRN", "name": "Karimnagar"}
         ]
     else:
-        # Mock data for other states
         cities = [
             {"code": "CT1", "name": "City 1"},
-            {"code": "CT2", "name": "City 2"},
-            {"code": "CT3", "name": "City 3"}
         ]
     
     return {"cities": cities}

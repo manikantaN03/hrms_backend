@@ -586,12 +586,12 @@ async def create_location(
             Location.business_id == business_id
         ).update({"is_default": False})
 
-       map_url = location.map_url
-       if hasattr(location, "lat") and hasattr(location, "lng");
-       if location.lat and location.lng;
-       map_url = generate_map_url(location.lat, location.lng)
-       elif location.map_url and "maps.app.google.gl" in location.map_url;
-       map_url = f"https://www.google.com/maps?q={location.name}&output=embed" 
+    map_url = location.map_url
+    if hasattr(location, "lat") and hasattr(location, "lng"):
+        if location.lat and location.lng:
+            map_url = generate_map_url(location.lat, location.lng)
+    elif location.map_url and "maps.app.google.gl" in location.map_url:
+        map_url = f"https://www.google.com/maps?q={location.name}&output=embed"
     
     # Create new location
     new_location = Location(
