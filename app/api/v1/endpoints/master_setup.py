@@ -659,32 +659,32 @@ async def update_location(
     update_data = location.model_dump(exclude_unset=True)
 
     #  Handle map URL generation
-if "lat" in update_data and "lng" in update_data:
-    if update_data["lat"] and update_data["lng"]:
-        update_data["map_url"] = generate_map_url(
-            update_data["lat"], update_data["lng"]
-        )
+    if "lat" in update_data and "lng" in update_data:
+        if update_data["lat"] and update_data["lng"]:
+            update_data["map_url"] = generate_map_url(
+                update_data["lat"], update_data["lng"]
+            )
 
-elif "map_url" in update_data:
-    if "maps.app.goo.gl" in update_data["map_url"]:
-        update_data["map_url"] = f"https://www.google.com/maps?q={existing_loc.name}&output=embed"
-    
+    elif "map_url" in update_data:
+        if "maps.app.goo.gl" in update_data["map_url"]:
+            update_data["map_url"] = f"https://www.google.com/maps?q={existing_loc.name}&output=embed"
+
     # If setting as default, unset other defaults
     if update_data.get("is_default"):
         db.query(Location).filter(
             Location.business_id == business_id,
             Location.id != location_id
         ).update({"is_default": False})
-    
+
     # Apply updates
     for field, value in update_data.items():
         setattr(existing_loc, field, value)
-    
+
     existing_loc.updated_at = datetime.now()
-    
+
     db.commit()
     db.refresh(existing_loc)
-    
+
     return LocationResponse(
         id=existing_loc.id,
         business_id=existing_loc.business_id,
