@@ -3,7 +3,7 @@ Master Setup API Endpoints
 Comprehensive API for all Master Setup modules
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -107,22 +107,64 @@ def validate_business_access(business_id: int, current_user: User, db: Session):
     return business
 
 
+def require_business_id(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> int:
+    """Dependency to require and validate business_id for endpoints.
+
+    Accepts business_id as either a path parameter or a query parameter.
+    Avoids using `Query` to prevent conflicts when routes define a path
+    parameter named `business_id`.
+    """
+    # Try path params first
+    business_id = None
+    try:
+        business_id = request.path_params.get("business_id")
+    except Exception:
+        business_id = None
+
+    # Fallback to query params
+    if not business_id:
+        business_id = request.query_params.get("business_id")
+
+    if business_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing required parameter: business_id (path or query)"
+        )
+
+    try:
+        business_id = int(business_id)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid business_id"
+        )
+
+    # Ensure the user has access
+    validate_business_access(business_id, current_user, db)
+    return business_id
+
+
+# Attach requirement to all routes registered on this router
+# This ensures every endpoint requires a valid `business_id` query param.
+router.dependencies.append(Depends(require_business_id))
+
+
 # ============================================================================
 # Dashboard Endpoint
 # ============================================================================
 
 @router.get("/dashboard", response_model=Dict[str, Any])
 async def get_master_setup_dashboard(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Depends(require_business_id),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Get Master Setup dashboard with all module statistics"""
-    
-    if not business_id:
-        business_id = get_user_business_id(current_user, db)
-    
-    validate_business_access(business_id, current_user, db)
+    # `business_id` is validated by `require_business_id`
     
     # Get counts for each module
     departments_count = db.query(Department).filter(Department.business_id == business_id).count()
@@ -220,7 +262,7 @@ async def get_master_setup_dashboard(
 
 @router.get("/departments", response_model=List[DepartmentResponse])
 async def get_departments(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -268,7 +310,7 @@ async def get_departments(
 @router.post("/departments", response_model=DepartmentResponse)
 async def create_department(
     department: DepartmentCreate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -340,7 +382,7 @@ async def create_department(
 async def update_department(
     department_id: int,
     department: DepartmentUpdate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -415,7 +457,7 @@ async def update_department(
 @router.delete("/departments/{department_id}")
 async def delete_department(
     department_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     force: bool = Query(False, description="Force delete and reassign employees to default department"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
@@ -506,7 +548,7 @@ async def delete_department(
 
 @router.get("/locations", response_model=List[LocationResponse])
 async def get_locations(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -545,7 +587,7 @@ async def get_locations(
 # Alias for singular form (frontend compatibility)
 @router.get("/Location", response_model=List[LocationResponse])
 async def get_locations_singular(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -556,7 +598,7 @@ async def get_locations_singular(
 @router.post("/locations", response_model=LocationResponse)
 async def create_location(
     location: LocationCreate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -631,7 +673,7 @@ async def create_location(
 async def update_location(
     location_id: int,
     location: LocationUpdate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -705,7 +747,7 @@ async def update_location(
 @router.delete("/locations/{location_id}")
 async def delete_location(
     location_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     force: bool = Query(False, description="Force delete and reassign employees to default location"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
@@ -796,7 +838,7 @@ async def delete_location(
 @router.post("/locations/generate-qr/{location_id}")
 async def generate_location_qr(
     location_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -918,7 +960,7 @@ async def get_location_qr(
 
 @router.get("/grades", response_model=List[GradeResponse])
 async def get_grades(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -955,7 +997,7 @@ async def get_grades(
 @router.post("/grades", response_model=GradeResponse)
 async def create_grade(
     grade: GradeCreate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1005,7 +1047,7 @@ async def create_grade(
 async def update_grade(
     grade_id: int,
     grade: GradeUpdate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1054,7 +1096,7 @@ async def update_grade(
 @router.delete("/grades/{grade_id}")
 async def delete_grade(
     grade_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     force: bool = Query(False, description="Force delete and set employees grade to NULL"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
@@ -1122,7 +1164,7 @@ async def delete_grade(
 
 @router.get("/designations", response_model=List[DesignationResponse])
 async def get_designations(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -1155,7 +1197,7 @@ async def get_designations(
 @router.post("/designations", response_model=DesignationResponse)
 async def create_designation(
     designation: DesignationCreate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1213,7 +1255,7 @@ async def create_designation(
 async def update_designation(
     designation_id: int,
     designation: DesignationUpdate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1270,7 +1312,7 @@ async def update_designation(
 @router.delete("/designations/{designation_id}")
 async def delete_designation(
     designation_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1315,7 +1357,7 @@ async def delete_designation(
 
 @router.get("/workshifts", response_model=List[WorkShiftResponse])
 async def get_work_shifts(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -1354,7 +1396,7 @@ async def get_work_shifts(
 @router.post("/workshifts", response_model=WorkShiftResponse)
 async def create_work_shift(
     work_shift: WorkShiftCreate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1423,7 +1465,7 @@ async def create_work_shift(
 async def update_work_shift(
     work_shift_id: int,
     work_shift: WorkShiftUpdate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1495,7 +1537,7 @@ async def update_work_shift(
 @router.delete("/workshifts/{work_shift_id}")
 async def delete_work_shift(
     work_shift_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1533,7 +1575,7 @@ async def delete_work_shift(
 
 @router.get("/cost-centers", response_model=List[CostCenterResponse])
 async def get_cost_centers(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -1567,7 +1609,7 @@ async def get_cost_centers(
 @router.post("/cost-centers", response_model=CostCenterResponse)
 async def create_cost_center(
     cost_center: CostCenterCreate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1659,7 +1701,7 @@ async def create_cost_center(
 async def update_cost_center(
     cost_center_id: int,
     cost_center: CostCenterUpdate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1753,7 +1795,7 @@ async def update_cost_center(
 @router.delete("/cost-centers/{cost_center_id}")
 async def delete_cost_center(
     cost_center_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1799,7 +1841,7 @@ async def delete_cost_center(
 
 @router.get("/business-units", response_model=List[BusinessUnitResponse])
 async def get_business_units(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -1837,7 +1879,7 @@ async def get_business_units(
 @router.post("/business-units", response_model=BusinessUnitResponse)
 async def create_business_unit(
     business_unit: BusinessUnitCreate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1901,7 +1943,7 @@ async def create_business_unit(
 async def update_business_unit(
     business_unit_id: int,
     business_unit: BusinessUnitUpdate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1963,7 +2005,7 @@ async def update_business_unit(
 @router.delete("/business-units/{business_unit_id}")
 async def delete_business_unit(
     business_unit_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2009,7 +2051,7 @@ async def delete_business_unit(
 
 @router.get("/shiftpolicyeditor", response_model=List[ShiftPolicyDetailResponse])
 async def get_shift_policies(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2032,7 +2074,7 @@ async def get_shift_policies(
 @router.post("/shiftpolicyeditor", response_model=ShiftPolicyDetailResponse)
 async def create_shift_policy(
     shift_policy: ShiftPolicyCreate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2057,7 +2099,7 @@ async def create_shift_policy(
 
 @router.get("/shiftpolicyeditor/default", response_model=ShiftPolicyDetailResponse)
 async def get_default_shift_policy(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2080,7 +2122,7 @@ async def get_default_shift_policy(
 @router.get("/shiftpolicyeditor/{policy_id}", response_model=ShiftPolicyDetailResponse)
 async def get_shift_policy(
     policy_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2104,7 +2146,7 @@ async def get_shift_policy(
 async def update_shift_policy(
     policy_id: int,
     shift_policy: ShiftPolicyUpdate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2130,7 +2172,7 @@ async def update_shift_policy(
 @router.delete("/shiftpolicyeditor/{policy_id}")
 async def delete_shift_policy(
     policy_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2157,7 +2199,7 @@ async def delete_shift_policy(
 
 @router.get("/weekoff", response_model=List[WeekOffPolicyResponse])
 async def get_weekoff_policies(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2180,7 +2222,7 @@ async def get_weekoff_policies(
 @router.post("/weekoff", response_model=WeekOffPolicyResponse)
 async def create_weekoff_policy(
     weekoff_policy: WeekOffPolicyCreate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2205,7 +2247,7 @@ async def create_weekoff_policy(
 
 @router.get("/weekoff/default", response_model=WeekOffPolicyResponse)
 async def get_default_weekoff_policy(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2228,7 +2270,7 @@ async def get_default_weekoff_policy(
 @router.get("/weekoff/{policy_id}", response_model=WeekOffPolicyResponse)
 async def get_weekoff_policy(
     policy_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2252,7 +2294,7 @@ async def get_weekoff_policy(
 async def update_weekoff_policy(
     policy_id: int,
     weekoff_policy: WeekOffPolicyUpdate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2278,7 +2320,7 @@ async def update_weekoff_policy(
 @router.delete("/weekoff/{policy_id}")
 async def delete_weekoff_policy(
     policy_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2305,7 +2347,7 @@ async def delete_weekoff_policy(
 
 @router.get("/bussinesinfo", response_model=BusinessInformationResponse)
 async def get_business_info(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2328,7 +2370,7 @@ async def get_business_info(
 @router.post("/bussinesinfo", response_model=BusinessInformationResponse)
 async def create_business_info(
     business_info: BusinessInformationCreate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2354,7 +2396,7 @@ async def create_business_info(
 @router.put("/bussinesinfo", response_model=BusinessInformationResponse)
 async def update_business_info(
     business_info: BusinessInformationUpdate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2379,7 +2421,7 @@ async def update_business_info(
 
 @router.delete("/bussinesinfo")
 async def delete_business_info(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2406,7 +2448,7 @@ async def delete_business_info(
 
 @router.get("/visit-types", response_model=List[VisitTypeResponse])
 async def get_visit_types(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2429,7 +2471,7 @@ async def get_visit_types(
 @router.post("/visit-types", response_model=VisitTypeResponse)
 async def create_visit_type(
     visit_type: VisitTypeCreate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2455,7 +2497,7 @@ async def create_visit_type(
 @router.get("/visit-types/{visit_type_id}", response_model=VisitTypeResponse)
 async def get_visit_type(
     visit_type_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2479,7 +2521,7 @@ async def get_visit_type(
 async def update_visit_type(
     visit_type_id: int,
     visit_type: VisitTypeUpdate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2505,7 +2547,7 @@ async def update_visit_type(
 @router.delete("/visit-types/{visit_type_id}")
 async def delete_visit_type(
     visit_type_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2531,7 +2573,7 @@ async def delete_visit_type(
 
 @router.get("/helpdesk-categories", response_model=List[CategoryResponse])
 async def get_helpdesk_categories(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2554,7 +2596,7 @@ async def get_helpdesk_categories(
 @router.post("/helpdesk-categories", response_model=CategoryResponse)
 async def create_helpdesk_category(
     category: CategoryCreate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2580,7 +2622,7 @@ async def create_helpdesk_category(
 @router.get("/helpdesk-categories/{category_id}", response_model=CategoryResponse)
 async def get_helpdesk_category(
     category_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2604,7 +2646,7 @@ async def get_helpdesk_category(
 async def update_helpdesk_category(
     category_id: int,
     category: CategoryUpdate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2630,7 +2672,7 @@ async def update_helpdesk_category(
 @router.delete("/helpdesk-categories/{category_id}")
 async def delete_helpdesk_category(
     category_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2800,7 +2842,7 @@ async def regenerate_employee_codes(
 
 @router.get("/exit-reasons", response_model=List[ExitReasonResponse])
 async def get_exit_reasons(
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2823,7 +2865,7 @@ async def get_exit_reasons(
 @router.post("/exit-reasons", response_model=ExitReasonResponse)
 async def create_exit_reason(
     exit_reason: ExitReasonCreate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2850,7 +2892,7 @@ async def create_exit_reason(
 async def update_exit_reason(
     reason_id: int,
     exit_reason: ExitReasonUpdate,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2876,7 +2918,7 @@ async def update_exit_reason(
 @router.delete("/exit-reasons/{reason_id}")
 async def delete_exit_reason(
     reason_id: int,
-    business_id: Optional[int] = Query(None),
+    business_id: int = Query(..., description="Business id is required"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):

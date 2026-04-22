@@ -11,12 +11,13 @@ from datetime import datetime, timedelta
 
 from app.core.database import get_db
 from app.api.v1.deps import get_current_user, get_current_admin
-from app.api.v1.endpoints.master_setup import get_user_business_id
+from app.api.v1.endpoints.master_setup import get_user_business_id, require_business_id
 from app.models.user import User
 from app.models.employee import Employee
 from pydantic import BaseModel
 
 router = APIRouter()
+router.dependencies.append(Depends(require_business_id))
 
 
 class SetupDashboardResponse(BaseModel):
@@ -28,6 +29,7 @@ class SetupDashboardResponse(BaseModel):
 
 @router.get("", response_model=SetupDashboardResponse)
 async def get_setup_dashboard_main(
+    business_id: int = Depends(require_business_id),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -40,7 +42,7 @@ async def get_setup_dashboard_main(
     - Recent setup activities
     """
     try:
-        business_id = get_user_business_id(current_user, db)
+        # business_id validated by dependency
         
         # Mock setup data
         setup_data = {
@@ -84,6 +86,7 @@ async def get_setup_dashboard_main(
 
 @router.get("/mastersetup", response_model=Dict[str, Any])
 async def get_setup_mastersetup_dashboard(
+    business_id: int = Depends(require_business_id),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -96,7 +99,7 @@ async def get_setup_mastersetup_dashboard(
     - System configuration overview
     """
     try:
-        business_id = get_user_business_id(current_user, db)
+        # business_id validated by dependency
         
         # All 15 setup modules as shown in frontend image (4 rows x 3-4 cards each)
         setup_modules = [
