@@ -4,10 +4,11 @@ Pydantic models for request/response validation
 """
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 from .enums import UserRole, UserStatus
+from .business import BusinessSummary
 
 
 # ============================================================================
@@ -95,6 +96,7 @@ class AdminResponse(BaseModel):
     # Computed fields for frontend compatibility
     first_name: Optional[str] = None
     last_name: Optional[str] = None
+    businesses: List[BusinessSummary] = []
     
     @classmethod
     def from_user(cls, user):
@@ -107,6 +109,14 @@ class AdminResponse(BaseModel):
             first_name = name_parts[0] if len(name_parts) > 0 else None
             last_name = name_parts[1] if len(name_parts) > 1 else None
         
+        # Build business summaries from related Business objects if available
+        business_summaries = []
+        try:
+            if hasattr(user, 'businesses') and user.businesses:
+                business_summaries = [BusinessSummary.model_validate(b) for b in user.businesses]
+        except Exception:
+            business_summaries = []
+
         return cls(
             id=user.id,
             name=user.name or "",
@@ -131,6 +141,8 @@ class AdminResponse(BaseModel):
             created_at=user.created_at,
             first_name=first_name,
             last_name=last_name
+            ,
+            businesses=business_summaries
         )
     
     model_config = ConfigDict(from_attributes=True)
