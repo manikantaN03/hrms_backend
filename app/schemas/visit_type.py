@@ -8,7 +8,6 @@ from datetime import datetime
 
 
 class VisitTypeBase(BaseModel):
-    business_id: int
     name: str = Field(..., min_length=1, max_length=255)
     
     @model_validator(mode='before')
@@ -31,7 +30,6 @@ class VisitTypeCreate(VisitTypeBase):
 
 
 class VisitTypeUpdate(BaseModel):
-    business_id: int
     name: str = Field(..., min_length=1, max_length=255)
     
     @model_validator(mode='before')

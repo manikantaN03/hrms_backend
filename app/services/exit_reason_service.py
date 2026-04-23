@@ -9,8 +9,9 @@ from app.repositories.exit_reason_repository import (
 )
 from app.schemas.exit_reason import ExitReasonCreate, ExitReasonUpdate
 
-def create_exit_reason_service(db: Session, payload: ExitReasonCreate):
-    return create_exit_reason(db, payload)
+
+def create_exit_reason_service(db: Session, payload: ExitReasonCreate, business_id: int):
+    return create_exit_reason(db, payload, business_id)
 
 
 def get_exit_reasons_service(db: Session, business_id: int):

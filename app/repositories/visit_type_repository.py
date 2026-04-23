@@ -34,17 +34,17 @@ class VisitTypeRepository:
         ).first()
     
     @staticmethod
-    def create(db: Session, visit_type_data: VisitTypeCreate) -> VisitType:
+    def create(db: Session, visit_type_data: VisitTypeCreate, business_id: int) -> VisitType:
         """Create new visit type."""
         # Check if name already exists for this business
         existing = VisitTypeRepository.get_by_name(
-            db, visit_type_data.name, visit_type_data.business_id
+            db, visit_type_data.name, business_id
         )
         if existing:
             raise ValueError(f"Visit type '{visit_type_data.name}' already exists")
         
         db_visit_type = VisitType(
-            business_id=visit_type_data.business_id,
+            business_id=business_id,
             name=visit_type_data.name
         )
         db.add(db_visit_type)

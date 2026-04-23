@@ -16,8 +16,10 @@ class ShiftPolicyRepository:
                  .filter(ShiftPolicy.id == policy_id, ShiftPolicy.business_id == business_id).first()
 
     @staticmethod
-    def create(db: Session, payload: ShiftPolicyCreate) -> ShiftPolicy:
-        db_policy = ShiftPolicy(**payload.model_dump())
+    def create(db: Session, payload: ShiftPolicyCreate, business_id: int) -> ShiftPolicy:
+        data = payload.model_dump()
+        data["business_id"] = business_id
+        db_policy = ShiftPolicy(**data)
         db.add(db_policy)
         db.commit()
         db.refresh(db_policy)

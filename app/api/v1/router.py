@@ -105,7 +105,7 @@ api_router.include_router(
 
 api_router.include_router(
     workflows_router,
-    prefix="/workflows",
+    prefix="/{business_id}/workflows",
     tags=["Master Setup"],
     dependencies=[Depends(get_current_admin)],
 )

@@ -3,7 +3,7 @@ Master Setup API Endpoints
 Comprehensive API for all Master Setup modules
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -73,7 +73,7 @@ from app.schemas.exit_reason import (
 )
 from app.utils.map_utils import generate_map_url
 
-router = APIRouter()
+router = APIRouter(prefix="/{business_id}")
 
 
 # ============================================================================
@@ -104,53 +104,27 @@ def validate_business_access(business_id: int, current_user: User, db: Session):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Business not found"
         )
+    if business.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not have access to this business"
+        )
     return business
 
 
-def require_business_id(
-    request: Request,
+def validate_business_access_dep(
+    business_id: int = Path(...),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-) -> int:
-    """Dependency to require and validate business_id for endpoints.
-
-    Accepts business_id as either a path parameter or a query parameter.
-    Avoids using `Query` to prevent conflicts when routes define a path
-    parameter named `business_id`.
-    """
-    # Try path params first
-    business_id = None
-    try:
-        business_id = request.path_params.get("business_id")
-    except Exception:
-        business_id = None
-
-    # Fallback to query params
-    if not business_id:
-        business_id = request.query_params.get("business_id")
-
-    if business_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing required parameter: business_id (path or query)"
-        )
-
-    try:
-        business_id = int(business_id)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid business_id"
-        )
-
-    # Ensure the user has access
+    db: Session = Depends(get_db),
+):
+    """Dependency to validate business existence and user access and return business_id"""
+    # Validate existence and ownership
     validate_business_access(business_id, current_user, db)
     return business_id
 
 
-# Attach requirement to all routes registered on this router
-# This ensures every endpoint requires a valid `business_id` query param.
-router.dependencies.append(Depends(require_business_id))
+# Note: `business_id` is a path parameter via router prefix and validated
+# using `validate_business_access_dep` in each endpoint.
 
 
 # ============================================================================
@@ -159,12 +133,12 @@ router.dependencies.append(Depends(require_business_id))
 
 @router.get("/dashboard", response_model=Dict[str, Any])
 async def get_master_setup_dashboard(
-    business_id: int = Depends(require_business_id),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Get Master Setup dashboard with all module statistics"""
-    # `business_id` is validated by `require_business_id`
+    # `business_id` is validated by `validate_business_access_dep`
     
     # Get counts for each module
     departments_count = db.query(Department).filter(Department.business_id == business_id).count()
@@ -262,7 +236,7 @@ async def get_master_setup_dashboard(
 
 @router.get("/departments", response_model=List[DepartmentResponse])
 async def get_departments(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -310,63 +284,13 @@ async def get_departments(
 @router.post("/departments", response_model=DepartmentResponse)
 async def create_department(
     department: DepartmentCreate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
     """Create a new department"""
     try:
-        if not business_id:
-            business_id = get_user_business_id(current_user, db)
-        
-        validate_business_access(business_id, current_user, db)
-        
-        # Check if department name already exists
-        existing = db.query(Department).filter(
-            Department.business_id == business_id,
-            Department.name == department.name,
-            Department.is_active == True
-        ).first()
-        
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Department with this name already exists"
-            )
-        
-        # If this is set as default, unset other defaults
-        if department.is_default:
-            db.query(Department).filter(
-                Department.business_id == business_id
-            ).update({"is_default": False})
-        
-        # Create new department
-        new_department = Department(
-            business_id=business_id,
-            name=department.name,
-            head=department.head,
-            deputy_head=department.deputy_head,
-            is_default=department.is_default,
-            employees=0,
-            is_active=True
-        )
-        
-        db.add(new_department)
-        db.commit()
-        db.refresh(new_department)
-        
-        return DepartmentResponse(
-            id=new_department.id,
-            business_id=new_department.business_id,
-            name=new_department.name,
-            head=new_department.head,
-            deputy_head=new_department.deputy_head,
-            is_default=new_department.is_default,
-            employees=new_department.employees,
-            is_active=new_department.is_active,
-            created_at=new_department.created_at.isoformat() if new_department.created_at else None,
-            updated_at=new_department.updated_at.isoformat() if new_department.updated_at else None
-        )
+            return await create_department_service(department, business_id, current_user, db)
     except HTTPException:
         db.rollback()
         raise
@@ -382,7 +306,7 @@ async def create_department(
 async def update_department(
     department_id: int,
     department: DepartmentUpdate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -457,7 +381,7 @@ async def update_department(
 @router.delete("/departments/{department_id}")
 async def delete_department(
     department_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     force: bool = Query(False, description="Force delete and reassign employees to default department"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
@@ -548,7 +472,7 @@ async def delete_department(
 
 @router.get("/locations", response_model=List[LocationResponse])
 async def get_locations(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -587,7 +511,7 @@ async def get_locations(
 # Alias for singular form (frontend compatibility)
 @router.get("/Location", response_model=List[LocationResponse])
 async def get_locations_singular(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -598,7 +522,7 @@ async def get_locations_singular(
 @router.post("/locations", response_model=LocationResponse)
 async def create_location(
     location: LocationCreate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -673,7 +597,7 @@ async def create_location(
 async def update_location(
     location_id: int,
     location: LocationUpdate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -747,7 +671,7 @@ async def update_location(
 @router.delete("/locations/{location_id}")
 async def delete_location(
     location_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     force: bool = Query(False, description="Force delete and reassign employees to default location"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
@@ -838,7 +762,7 @@ async def delete_location(
 @router.post("/locations/generate-qr/{location_id}")
 async def generate_location_qr(
     location_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -906,10 +830,10 @@ async def generate_location_qr(
         )
 
 
-@router.get("/locations/{business_id}/qr/{location_id}")
+@router.get("/locations/qr/{location_id}")
 async def get_location_qr(
-    business_id: int,
-    location_id: int,
+    location_id: int = Path(...),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -960,7 +884,7 @@ async def get_location_qr(
 
 @router.get("/grades", response_model=List[GradeResponse])
 async def get_grades(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -997,7 +921,7 @@ async def get_grades(
 @router.post("/grades", response_model=GradeResponse)
 async def create_grade(
     grade: GradeCreate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1047,7 +971,7 @@ async def create_grade(
 async def update_grade(
     grade_id: int,
     grade: GradeUpdate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1096,7 +1020,7 @@ async def update_grade(
 @router.delete("/grades/{grade_id}")
 async def delete_grade(
     grade_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     force: bool = Query(False, description="Force delete and set employees grade to NULL"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
@@ -1164,7 +1088,7 @@ async def delete_grade(
 
 @router.get("/designations", response_model=List[DesignationResponse])
 async def get_designations(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -1197,7 +1121,7 @@ async def get_designations(
 @router.post("/designations", response_model=DesignationResponse)
 async def create_designation(
     designation: DesignationCreate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1255,7 +1179,7 @@ async def create_designation(
 async def update_designation(
     designation_id: int,
     designation: DesignationUpdate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1312,7 +1236,7 @@ async def update_designation(
 @router.delete("/designations/{designation_id}")
 async def delete_designation(
     designation_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1357,7 +1281,7 @@ async def delete_designation(
 
 @router.get("/workshifts", response_model=List[WorkShiftResponse])
 async def get_work_shifts(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -1396,7 +1320,7 @@ async def get_work_shifts(
 @router.post("/workshifts", response_model=WorkShiftResponse)
 async def create_work_shift(
     work_shift: WorkShiftCreate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1465,7 +1389,7 @@ async def create_work_shift(
 async def update_work_shift(
     work_shift_id: int,
     work_shift: WorkShiftUpdate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1537,7 +1461,7 @@ async def update_work_shift(
 @router.delete("/workshifts/{work_shift_id}")
 async def delete_work_shift(
     work_shift_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1575,7 +1499,7 @@ async def delete_work_shift(
 
 @router.get("/cost-centers", response_model=List[CostCenterResponse])
 async def get_cost_centers(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -1609,7 +1533,7 @@ async def get_cost_centers(
 @router.post("/cost-centers", response_model=CostCenterResponse)
 async def create_cost_center(
     cost_center: CostCenterCreate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1701,7 +1625,7 @@ async def create_cost_center(
 async def update_cost_center(
     cost_center_id: int,
     cost_center: CostCenterUpdate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1795,7 +1719,7 @@ async def update_cost_center(
 @router.delete("/cost-centers/{cost_center_id}")
 async def delete_cost_center(
     cost_center_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1841,7 +1765,7 @@ async def delete_cost_center(
 
 @router.get("/business-units", response_model=List[BusinessUnitResponse])
 async def get_business_units(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -1879,7 +1803,7 @@ async def get_business_units(
 @router.post("/business-units", response_model=BusinessUnitResponse)
 async def create_business_unit(
     business_unit: BusinessUnitCreate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -1943,7 +1867,7 @@ async def create_business_unit(
 async def update_business_unit(
     business_unit_id: int,
     business_unit: BusinessUnitUpdate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2005,7 +1929,7 @@ async def update_business_unit(
 @router.delete("/business-units/{business_unit_id}")
 async def delete_business_unit(
     business_unit_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2051,7 +1975,7 @@ async def delete_business_unit(
 
 @router.get("/shiftpolicyeditor", response_model=List[ShiftPolicyDetailResponse])
 async def get_shift_policies(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2074,7 +1998,7 @@ async def get_shift_policies(
 @router.post("/shiftpolicyeditor", response_model=ShiftPolicyDetailResponse)
 async def create_shift_policy(
     shift_policy: ShiftPolicyCreate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2085,21 +2009,15 @@ async def create_shift_policy(
     
     validate_business_access(business_id, current_user, db)
     
-    # Set business_id in the payload
-    shift_policy.business_id = business_id
-    
     try:
-        return ShiftPolicyService.create_policy(db, shift_policy)
+        return ShiftPolicyService.create_policy(db, shift_policy, business_id)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get("/shiftpolicyeditor/default", response_model=ShiftPolicyDetailResponse)
 async def get_default_shift_policy(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2122,7 +2040,7 @@ async def get_default_shift_policy(
 @router.get("/shiftpolicyeditor/{policy_id}", response_model=ShiftPolicyDetailResponse)
 async def get_shift_policy(
     policy_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2146,7 +2064,7 @@ async def get_shift_policy(
 async def update_shift_policy(
     policy_id: int,
     shift_policy: ShiftPolicyUpdate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2157,22 +2075,16 @@ async def update_shift_policy(
     
     validate_business_access(business_id, current_user, db)
     
-    # Set business_id in the payload
-    shift_policy.business_id = business_id
-    
     try:
         return ShiftPolicyService.update_policy(db, policy_id, business_id, shift_policy)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete("/shiftpolicyeditor/{policy_id}")
 async def delete_shift_policy(
     policy_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2199,7 +2111,7 @@ async def delete_shift_policy(
 
 @router.get("/weekoff", response_model=List[WeekOffPolicyResponse])
 async def get_weekoff_policies(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2222,7 +2134,7 @@ async def get_weekoff_policies(
 @router.post("/weekoff", response_model=WeekOffPolicyResponse)
 async def create_weekoff_policy(
     weekoff_policy: WeekOffPolicyCreate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2233,21 +2145,15 @@ async def create_weekoff_policy(
     
     validate_business_access(business_id, current_user, db)
     
-    # Set business_id in the payload
-    weekoff_policy.business_id = business_id
-    
     try:
-        return WeekOffPolicyService.create_policy(db, weekoff_policy)
+        return WeekOffPolicyService.create_policy(db, weekoff_policy, business_id)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get("/weekoff/default", response_model=WeekOffPolicyResponse)
 async def get_default_weekoff_policy(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2270,7 +2176,7 @@ async def get_default_weekoff_policy(
 @router.get("/weekoff/{policy_id}", response_model=WeekOffPolicyResponse)
 async def get_weekoff_policy(
     policy_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2294,7 +2200,7 @@ async def get_weekoff_policy(
 async def update_weekoff_policy(
     policy_id: int,
     weekoff_policy: WeekOffPolicyUpdate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2320,7 +2226,7 @@ async def update_weekoff_policy(
 @router.delete("/weekoff/{policy_id}")
 async def delete_weekoff_policy(
     policy_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2347,7 +2253,7 @@ async def delete_weekoff_policy(
 
 @router.get("/bussinesinfo", response_model=BusinessInformationResponse)
 async def get_business_info(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2370,7 +2276,7 @@ async def get_business_info(
 @router.post("/bussinesinfo", response_model=BusinessInformationResponse)
 async def create_business_info(
     business_info: BusinessInformationCreate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2381,22 +2287,16 @@ async def create_business_info(
     
     validate_business_access(business_id, current_user, db)
     
-    # Set business_id in the payload
-    business_info.business_id = business_id
-    
     try:
-        return BusinessInformationService.create_business_information(db, business_info)
+        return BusinessInformationService.create_business_information(db, business_info, business_id)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.put("/bussinesinfo", response_model=BusinessInformationResponse)
 async def update_business_info(
     business_info: BusinessInformationUpdate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2407,21 +2307,15 @@ async def update_business_info(
     
     validate_business_access(business_id, current_user, db)
     
-    # Set business_id in the payload
-    business_info.business_id = business_id
-    
     try:
         return BusinessInformationService.update_business_information(db, business_id, business_info)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete("/bussinesinfo")
 async def delete_business_info(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2448,7 +2342,7 @@ async def delete_business_info(
 
 @router.get("/visit-types", response_model=List[VisitTypeResponse])
 async def get_visit_types(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2471,7 +2365,7 @@ async def get_visit_types(
 @router.post("/visit-types", response_model=VisitTypeResponse)
 async def create_visit_type(
     visit_type: VisitTypeCreate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2482,22 +2376,16 @@ async def create_visit_type(
     
     validate_business_access(business_id, current_user, db)
     
-    # Set business_id in the payload
-    visit_type.business_id = business_id
-    
     try:
-        return VisitTypeService.create_visit_type(db, visit_type)
+        return VisitTypeService.create_visit_type(db, visit_type, business_id)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get("/visit-types/{visit_type_id}", response_model=VisitTypeResponse)
 async def get_visit_type(
     visit_type_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2521,7 +2409,7 @@ async def get_visit_type(
 async def update_visit_type(
     visit_type_id: int,
     visit_type: VisitTypeUpdate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2532,22 +2420,16 @@ async def update_visit_type(
     
     validate_business_access(business_id, current_user, db)
     
-    # Set business_id in the payload
-    visit_type.business_id = business_id
-    
     try:
         return VisitTypeService.update_visit_type(db, visit_type_id, business_id, visit_type)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete("/visit-types/{visit_type_id}")
 async def delete_visit_type(
     visit_type_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2573,7 +2455,7 @@ async def delete_visit_type(
 
 @router.get("/helpdesk-categories", response_model=List[CategoryResponse])
 async def get_helpdesk_categories(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2596,7 +2478,7 @@ async def get_helpdesk_categories(
 @router.post("/helpdesk-categories", response_model=CategoryResponse)
 async def create_helpdesk_category(
     category: CategoryCreate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2607,22 +2489,16 @@ async def create_helpdesk_category(
     
     validate_business_access(business_id, current_user, db)
     
-    # Set business_id in the payload
-    category.business_id = business_id
-    
     try:
-        return create_category_service(db, category)
+        return create_category_service(db, category, business_id)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get("/helpdesk-categories/{category_id}", response_model=CategoryResponse)
 async def get_helpdesk_category(
     category_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2646,7 +2522,7 @@ async def get_helpdesk_category(
 async def update_helpdesk_category(
     category_id: int,
     category: CategoryUpdate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2657,22 +2533,16 @@ async def update_helpdesk_category(
     
     validate_business_access(business_id, current_user, db)
     
-    # Set business_id in the payload
-    category.business_id = business_id
-    
     try:
         return update_category_service(db, category_id, business_id, category)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete("/helpdesk-categories/{category_id}")
 async def delete_helpdesk_category(
     category_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2696,9 +2566,9 @@ async def delete_helpdesk_category(
 # Employee Code Configuration Endpoints
 # ============================================================================
 
-@router.get("/employee-code/{business_id}", response_model=EmployeeCodeResponse)
+@router.get("/employee-code", response_model=EmployeeCodeResponse)
 async def get_employee_code_config(
-    business_id: int,
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2755,9 +2625,9 @@ async def save_employee_code_config(
         )
 
 
-@router.get("/employee-code/{business_id}/preview")
+@router.get("/employee-code/preview")
 async def preview_employee_codes(
-    business_id: int,
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2793,10 +2663,10 @@ async def preview_employee_codes(
         )
 
 
-@router.post("/employee-code/{business_id}/regenerate")
+@router.post("/employee-code/regenerate")
 async def regenerate_employee_codes(
-    business_id: int,
     request: RegenerateCodesRequest,
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2842,7 +2712,7 @@ async def regenerate_employee_codes(
 
 @router.get("/exit-reasons", response_model=List[ExitReasonResponse])
 async def get_exit_reasons(
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -2865,7 +2735,7 @@ async def get_exit_reasons(
 @router.post("/exit-reasons", response_model=ExitReasonResponse)
 async def create_exit_reason(
     exit_reason: ExitReasonCreate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2876,23 +2746,17 @@ async def create_exit_reason(
     
     validate_business_access(business_id, current_user, db)
     
-    # Set business_id in the payload
-    exit_reason.business_id = business_id
-    
     try:
-        return create_exit_reason_service(db, exit_reason)
+        return create_exit_reason_service(db, exit_reason, business_id)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.put("/exit-reasons/{reason_id}", response_model=ExitReasonResponse)
 async def update_exit_reason(
     reason_id: int,
     exit_reason: ExitReasonUpdate,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -2903,22 +2767,16 @@ async def update_exit_reason(
     
     validate_business_access(business_id, current_user, db)
     
-    # Set business_id in the payload
-    exit_reason.business_id = business_id
-    
     try:
         return update_exit_reason_service(db, reason_id, business_id, exit_reason)
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete("/exit-reasons/{reason_id}")
 async def delete_exit_reason(
     reason_id: int,
-    business_id: int = Query(..., description="Business id is required"),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):

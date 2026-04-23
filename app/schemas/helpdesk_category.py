@@ -2,7 +2,6 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing import Optional, Any
 
 class CategoryBase(BaseModel):
-    business_id: int
     name: str = Field(..., min_length=1, max_length=255)
     primary_approver: Optional[str] = Field(None, max_length=255)
     backup_approver: Optional[str] = Field(None, max_length=255)
@@ -35,10 +34,13 @@ class CategoryBase(BaseModel):
 class CategoryCreate(CategoryBase):
     pass
 
+
 class CategoryUpdate(CategoryBase):
     pass
 
+
 class CategoryResponse(CategoryBase):
     id: int
+    business_id: int
 
     model_config = ConfigDict(from_attributes=True)

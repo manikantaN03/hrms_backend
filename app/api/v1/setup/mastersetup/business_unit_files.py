@@ -3,7 +3,7 @@
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status, Form
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status, Form, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -15,7 +15,9 @@ from app.models.business import Business
 from app.repositories.business_unit_repository import BusinessUnitRepository
 
 
-router = APIRouter()
+from app.api.v1.endpoints.master_setup import validate_business_access_dep
+
+router = APIRouter(prefix="/{business_id}")
 
 
 # ============================================================================
@@ -97,7 +99,7 @@ def _get_unit_and_business(db: Session, unit_id: int, business_id: int = None):
 )
 def upload_header_image(
     unit_id: int,
-    business_id: int = Form(...),
+    business_id: int = Depends(validate_business_access_dep),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
@@ -127,7 +129,7 @@ def upload_header_image(
 )
 def upload_footer_image(
     unit_id: int,
-    business_id: int = Form(...),
+    business_id: int = Depends(validate_business_access_dep),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
@@ -157,10 +159,11 @@ def upload_footer_image(
 )
 def get_business_unit_header(
     unit_id: int,
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
-    unit = _get_unit_and_business(db, unit_id)
+    unit = _get_unit_and_business(db, unit_id, business_id)
 
     file_path = _resolve_unit_image_path(unit, "header")
     if not file_path:
@@ -183,10 +186,11 @@ def get_business_unit_header(
 )
 def get_business_unit_footer(
     unit_id: int,
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
-    unit = _get_unit_and_business(db, unit_id)
+    unit = _get_unit_and_business(db, unit_id, business_id)
 
     file_path = _resolve_unit_image_path(unit, "footer")
     if not file_path:

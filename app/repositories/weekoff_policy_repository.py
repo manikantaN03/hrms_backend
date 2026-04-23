@@ -26,10 +26,10 @@ class WeekOffPolicyRepository:
         ).first()
     
     @staticmethod
-    def create(db: Session, policy_data: WeekOffPolicyCreate) -> WeekOffPolicy:
+    def create(db: Session, policy_data: WeekOffPolicyCreate, business_id: int) -> WeekOffPolicy:
         """Create new week off policy."""
         db_policy = WeekOffPolicy(
-            business_id=policy_data.business_id,
+            business_id=business_id,
             title=policy_data.title,
             description=policy_data.description,
             is_default=policy_data.is_default,

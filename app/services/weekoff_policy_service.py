@@ -12,16 +12,16 @@ from app.models.weekoff_policy import WeekOffPolicy
 class WeekOffPolicyService:
     
     @staticmethod
-    def create_policy(db: Session, payload: WeekOffPolicyCreate) -> WeekOffPolicyResponse:
+    def create_policy(db: Session, payload: WeekOffPolicyCreate, business_id: int) -> WeekOffPolicyResponse:
         """Create new week off policy."""
         if payload.is_default:
-            # Unset other defaults for this business (use model directly to avoid empty-list indexing)
+            # Unset other defaults for this business
             db.query(WeekOffPolicy)\
-                .filter(WeekOffPolicy.business_id == payload.business_id)\
+                .filter(WeekOffPolicy.business_id == business_id)\
                 .update({"is_default": False})
             db.commit()
         
-        policy = WeekOffPolicyRepository.create(db, payload)
+        policy = WeekOffPolicyRepository.create(db, payload, business_id)
         return WeekOffPolicyResponse.model_validate(policy)
     
     @staticmethod

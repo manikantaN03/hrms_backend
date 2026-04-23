@@ -4,7 +4,6 @@ from datetime import datetime
 from app.schemas.work_shift import WorkShiftOut
 
 class ShiftPolicyBase(BaseModel):
-    business_id: int
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     is_default: bool = False
@@ -43,8 +42,8 @@ class ShiftPolicyBase(BaseModel):
 class ShiftPolicyCreate(ShiftPolicyBase):
     pass
 
+
 class ShiftPolicyUpdate(BaseModel):
-    business_id: int
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     is_default: Optional[bool] = None

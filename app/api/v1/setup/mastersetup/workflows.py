@@ -23,7 +23,7 @@ from app.services.workflow_service import (
     update_workflow_service,
     delete_workflow_service,
 )
-from app.api.v1.endpoints.master_setup import get_user_business_id
+from app.api.v1.endpoints.master_setup import validate_business_access_dep
 
 router = APIRouter()
 
@@ -53,6 +53,7 @@ def validate_business_exists(db: Session, business_id: int) -> Business:
     summary="List workflows for authenticated user's business",
 )
 def get_workflows(
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -61,18 +62,12 @@ def get_workflows(
 
     **Access:** ADMIN or SUPERADMIN
     """
-    business_id = get_user_business_id(current_user, db)
-    validate_business_exists(db, business_id)
-
     try:
         workflows = get_workflows_service(db, business_id)
         return workflows
 
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # ============================================================================
@@ -87,6 +82,7 @@ def get_workflows(
 )
 def create_workflow(
     payload: WorkflowCreate,
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -95,19 +91,12 @@ def create_workflow(
 
     **Access:** ADMIN or SUPERADMIN
     """
-    # Get business_id from authenticated user
-    business_id = get_user_business_id(current_user, db)
-    validate_business_exists(db, business_id)
-
     try:
         workflow = create_workflow_service(db, payload, business_id)
         return workflow
 
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # ============================================================================
@@ -122,6 +111,7 @@ def create_workflow(
 )
 def get_workflow(
     workflow_id: int,
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -130,18 +120,12 @@ def get_workflow(
 
     **Access:** ADMIN or SUPERADMIN
     """
-    business_id = get_user_business_id(current_user, db)
-    validate_business_exists(db, business_id)
-
     try:
         workflow = get_workflow_service(db, workflow_id, business_id)
         return workflow
 
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # ============================================================================
@@ -157,6 +141,7 @@ def get_workflow(
 def update_workflow(
     workflow_id: int,
     payload: WorkflowUpdate,
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -165,24 +150,12 @@ def update_workflow(
 
     **Access:** ADMIN or SUPERADMIN
     """
-    # Get business_id from authenticated user
-    business_id = get_user_business_id(current_user, db)
-    validate_business_exists(db, business_id)
-
     try:
-        workflow = update_workflow_service(
-            db,
-            workflow_id,
-            business_id,
-            payload,
-        )
+        workflow = update_workflow_service(db, workflow_id, business_id, payload)
         return workflow
 
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # ============================================================================
@@ -196,6 +169,7 @@ def update_workflow(
 )
 def delete_workflow(
     workflow_id: int,
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -204,16 +178,10 @@ def delete_workflow(
 
     **Access:** ADMIN or SUPERADMIN
     """
-    business_id = get_user_business_id(current_user, db)
-    validate_business_exists(db, business_id)
-
     try:
         delete_workflow_service(db, workflow_id, business_id)
         return {"detail": "Workflow deleted successfully"}
 
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

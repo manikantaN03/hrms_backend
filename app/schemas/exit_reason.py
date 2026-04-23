@@ -7,11 +7,11 @@ class ExitReasonBase(BaseModel):
 
 
 class ExitReasonCreate(ExitReasonBase):
-    business_id: int = Field(..., gt=0, description="Business ID")
+    pass
 
 
 class ExitReasonUpdate(ExitReasonBase):
-    business_id: int = Field(..., gt=0, description="Business ID")
+    pass
 
 
 class ExitReasonResponse(ExitReasonBase):

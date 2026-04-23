@@ -8,7 +8,7 @@ from datetime import datetime
 
 
 class BusinessInformationBase(BaseModel):
-    business_id: int
+    # business_id is provided via path parameter; not part of request bodies
 
     # Bank Details
     bank_name: Optional[str] = Field(None, max_length=255)
@@ -61,8 +61,6 @@ class BusinessInformationCreate(BusinessInformationBase):
 
 class BusinessInformationUpdate(BaseModel):
     # Bank Details
-    business_id: int
-
     bank_name: Optional[str] = Field(None, max_length=255)
     bank_branch: Optional[str] = Field(None, max_length=255)
     bank_ifsc: Optional[str] = Field(None, max_length=50)

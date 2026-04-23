@@ -11,13 +11,13 @@ from datetime import datetime, timedelta
 
 from app.core.database import get_db
 from app.api.v1.deps import get_current_user, get_current_admin
-from app.api.v1.endpoints.master_setup import get_user_business_id, require_business_id
+from app.api.v1.endpoints.master_setup import get_user_business_id, validate_business_access_dep
 from app.models.user import User
 from app.models.employee import Employee
 from pydantic import BaseModel
 
 router = APIRouter()
-router.dependencies.append(Depends(require_business_id))
+router.dependencies.append(Depends(validate_business_access_dep))
 
 
 class SetupDashboardResponse(BaseModel):
@@ -29,7 +29,7 @@ class SetupDashboardResponse(BaseModel):
 
 @router.get("", response_model=SetupDashboardResponse)
 async def get_setup_dashboard_main(
-    business_id: int = Depends(require_business_id),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -86,7 +86,7 @@ async def get_setup_dashboard_main(
 
 @router.get("/mastersetup", response_model=Dict[str, Any])
 async def get_setup_mastersetup_dashboard(
-    business_id: int = Depends(require_business_id),
+    business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):

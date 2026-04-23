@@ -9,12 +9,12 @@ from app.schemas.work_shift import WorkShiftOut
 class ShiftPolicyService:
 
     @staticmethod
-    def create_policy(db: Session, payload: ShiftPolicyCreate) -> ShiftPolicyDetailResponse:
+    def create_policy(db: Session, payload: ShiftPolicyCreate, business_id: int) -> ShiftPolicyDetailResponse:
         # Validate default shift
         if payload.default_shift_id:
             ws_repo = WorkShiftRepository(db)
             shift = ws_repo.get(payload.default_shift_id)
-            if not shift or getattr(shift, "business_id", None) != payload.business_id:
+            if not shift or getattr(shift, "business_id", None) != business_id:
                 raise HTTPException(status_code=404, detail=f"Default shift {payload.default_shift_id} not found")
         # Validate weekly shifts
         if payload.weekly_shifts:
@@ -22,13 +22,13 @@ class ShiftPolicyService:
             for day, shift_id in payload.weekly_shifts.items():
                 if shift_id:
                     s = ws_repo.get(shift_id)
-                    if not s or getattr(s, "business_id", None) != payload.business_id:
+                    if not s or getattr(s, "business_id", None) != business_id:
                         raise HTTPException(status_code=404, detail=f"Shift {shift_id} for {day} not found")
         # Unset other defaults if needed
         if payload.is_default:
-            ShiftPolicyRepository.set_as_default(db, 0, payload.business_id)  # use 0 for new policy
-        policy = ShiftPolicyRepository.create(db, payload)
-        return ShiftPolicyService.get_policy_by_id(db, policy.id, payload.business_id)
+            ShiftPolicyRepository.set_as_default(db, 0, business_id)  # use 0 for new policy
+        policy = ShiftPolicyRepository.create(db, payload, business_id)
+        return ShiftPolicyService.get_policy_by_id(db, policy.id, business_id)
 
     @staticmethod
     def get_all_policies(db: Session, business_id: int) -> List[ShiftPolicyDetailResponse]:

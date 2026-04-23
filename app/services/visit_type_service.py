@@ -11,10 +11,10 @@ from app.schemas.visit_type import VisitTypeCreate, VisitTypeUpdate, VisitTypeRe
 class VisitTypeService:
     
     @staticmethod
-    def create_visit_type(db: Session, payload: VisitTypeCreate) -> VisitTypeResponse:
+    def create_visit_type(db: Session, payload: VisitTypeCreate, business_id: int) -> VisitTypeResponse:
         """Create new visit type."""
         try:
-            visit_type = VisitTypeRepository.create(db, payload)
+            visit_type = VisitTypeRepository.create(db, payload, business_id)
             return VisitTypeResponse.model_validate(visit_type)
         except ValueError as e:
             raise HTTPException(

@@ -3,22 +3,22 @@ from app.models.helpdesk_category import HelpdeskCategory
 from app.schemas.helpdesk_category import CategoryCreate, CategoryUpdate
 
 
-def create_category(db: Session, payload: CategoryCreate):
+def create_category(db: Session, payload: CategoryCreate, business_id: int):
     # Check if name already exists for this business
     existing = db.query(HelpdeskCategory).filter(
         HelpdeskCategory.name == payload.name,
-        HelpdeskCategory.business_id == payload.business_id
+        HelpdeskCategory.business_id == business_id
     ).first()
     
     if existing:
         raise ValueError(f"Helpdesk category '{payload.name}' already exists")
     
     category = HelpdeskCategory(
-        business_id=payload.business_id,          
+        business_id=business_id,
         name=payload.name,
-        primary_approver=payload.primary_approver,  
-        backup_approver=payload.backup_approver,   
-        is_active=payload.is_active,                
+        primary_approver=payload.primary_approver,
+        backup_approver=payload.backup_approver,
+        is_active=payload.is_active,
     )
     db.add(category)
     db.commit()

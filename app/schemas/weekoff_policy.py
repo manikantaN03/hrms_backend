@@ -8,7 +8,6 @@ from datetime import datetime
 
 
 class WeekOffPolicyBase(BaseModel):
-    business_id: int
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     is_default: bool = False
@@ -41,7 +40,6 @@ class WeekOffPolicyCreate(WeekOffPolicyBase):
 
 
 class WeekOffPolicyUpdate(BaseModel):
-    business_id: int
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     is_default: Optional[bool] = None

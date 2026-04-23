@@ -11,9 +11,9 @@ from app.schemas.business_info import BusinessInformationCreate, BusinessInforma
 class BusinessInformationService:
     
     @staticmethod
-    def create_business_information(db: Session, payload: BusinessInformationCreate) -> BusinessInformationResponse:
+    def create_business_information(db: Session, payload: BusinessInformationCreate, business_id: int) -> BusinessInformationResponse:
         """Create business information."""
-        business_info = BusinessInformationRepository.create(db, payload)
+        business_info = BusinessInformationRepository.create(db, payload, business_id)
         return BusinessInformationResponse.model_validate(business_info)
     
     @staticmethod

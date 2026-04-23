@@ -18,10 +18,10 @@ class BusinessInformationRepository:
         ).first()
     
     @staticmethod
-    def create(db: Session, business_data: BusinessInformationCreate) -> BusinessInformation:
+    def create(db: Session, business_data: BusinessInformationCreate, business_id: int) -> BusinessInformation:
         """Create business information."""
         db_business = BusinessInformation(
-            business_id=business_data.business_id,
+            business_id=business_id,
             bank_name=business_data.bank_name,
             bank_branch=business_data.bank_branch,
             bank_ifsc=business_data.bank_ifsc,
@@ -47,11 +47,8 @@ class BusinessInformationRepository:
         
         if not db_business:
             # Create if doesn't exist - wrap in Create schema
-            create_data = BusinessInformationCreate(
-                business_id=business_id,
-                **business_data.model_dump(exclude_unset=True)
-            )
-            return BusinessInformationRepository.create(db, create_data)
+            create_data = BusinessInformationCreate(**business_data.model_dump(exclude_unset=True))
+            return BusinessInformationRepository.create(db, create_data, business_id)
         
         # Update existing record
         update_data = business_data.model_dump(exclude_unset=True)

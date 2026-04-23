@@ -9,8 +9,8 @@ from app.repositories.helpdesk_category_repository import (
 )
 from app.schemas.helpdesk_category import CategoryCreate, CategoryUpdate
 
-def create_category_service(db: Session, payload: CategoryCreate):
-    return create_category(db, payload)
+def create_category_service(db: Session, payload: CategoryCreate, business_id: int):
+    return create_category(db, payload, business_id)
 
 def get_categories_service(db: Session,business_id: int):
     return get_all_categories(db, business_id)

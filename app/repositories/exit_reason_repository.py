@@ -3,11 +3,11 @@ from app.models.exit_reason import ExitReason
 from app.schemas.exit_reason import ExitReasonCreate, ExitReasonUpdate
 
 
-def create_exit_reason(db: Session, payload: ExitReasonCreate):
+def create_exit_reason(db: Session, payload: ExitReasonCreate, business_id: int):
     reason = ExitReason(
-        business_id=payload.business_id,      
+        business_id=business_id,
         name=payload.name,
-        esi_mapping=payload.esi_mapping,      
+        esi_mapping=payload.esi_mapping,
     )
     db.add(reason)
     db.commit()
