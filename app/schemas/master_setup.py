@@ -89,8 +89,8 @@ class DepartmentResponse(DepartmentBase):
     business_id: int
     employees: int = Field(default=0)
     is_active: bool = Field(default=True)
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 

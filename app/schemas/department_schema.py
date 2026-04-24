@@ -10,6 +10,14 @@ class DepartmentCreate(BaseModel):
     isDefault: bool = False
 
 
+# Request-only schema: business_id is provided via path
+class DepartmentCreateIn(BaseModel):
+    name: str
+    head: str
+    deputyHead: Optional[str] = None
+    isDefault: bool = False
+
+
 class DepartmentUpdate(BaseModel):
     business_id: int
 

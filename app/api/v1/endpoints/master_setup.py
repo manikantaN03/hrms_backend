@@ -47,9 +47,11 @@ from app.services.employee_code_service import (
 from app.services.exit_reason_service import (
     create_exit_reason_service, get_exit_reasons_service, update_exit_reason_service, delete_exit_reason_service
 )
+from app.services.department_service import create_department as create_department_service
 from app.schemas.shift_policy import (
     ShiftPolicyCreate, ShiftPolicyUpdate, ShiftPolicyDetailResponse
 )
+from app.schemas.department_schema import DepartmentCreate, DepartmentCreateIn
 from app.schemas.weekoff_policy import (
     WeekOffPolicyCreate, WeekOffPolicyUpdate, WeekOffPolicyResponse
 )
@@ -283,14 +285,27 @@ async def get_departments(
 
 @router.post("/departments", response_model=DepartmentResponse)
 async def create_department(
-    department: DepartmentCreate,
+    department: DepartmentCreateIn,
     business_id: int = Depends(validate_business_access_dep),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
     """Create a new department"""
     try:
-            return await create_department_service(department, business_id, current_user, db)
+            # Ensure business access validated and attach business_id to payload
+            if not business_id:
+                business_id = get_user_business_id(current_user, db)
+
+            validate_business_access(business_id, current_user, db)
+
+            # Attach path business_id into payload for service which expects it
+            payload_dict = department.model_dump() if hasattr(department, "model_dump") else department.__dict__
+            payload_dict["business_id"] = business_id
+
+            # Build internal create model (includes business_id) and call service
+            internal = DepartmentCreate.model_validate(payload_dict)
+            created = create_department_service(db, internal)
+            return created
     except HTTPException:
         db.rollback()
         raise
