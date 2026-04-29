@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 
 from app.schemas.setup.salary_and_deductions.salary_deduction import (
@@ -21,13 +21,13 @@ service = SalaryDeductionService()
 
 # 🚀 LIST (Business Scoped)
 @router.get(
-    "/{business_id}",
+    "",
     response_model=list[SalaryDeductionResponse],
     summary="List all salary deductions for a business",
     description="Retrieve all salary deduction types configured for a specific business"
 )
 def list_deductions(
-    business_id: int,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -41,20 +41,22 @@ def list_deductions(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID"
         )
+    # validate user access to business
+    validate_business_access(business_id, current_user, db)
     return service.list(db, business_id)
 
 
 # 🚀 CREATE (Business Scoped)
 @router.post(
-    "/{business_id}",
+    "",
     response_model=SalaryDeductionResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create salary deduction",
     description="Create a new salary deduction type for a business"
 )
 def create_deduction(
-    business_id: int,
     data: SalaryDeductionCreate,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -69,19 +71,21 @@ def create_deduction(
     """
     if business_id <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid business ID")
+    # validate user access to business
+    validate_business_access(business_id, current_user, db)
     return service.create(db, business_id, data)
 
 
 # 🚀 GET (Business Scoped)
 @router.get(
-    "/{business_id}/{deduction_id}",
+    "/{deduction_id}",
     response_model=SalaryDeductionResponse,
     summary="Get salary deduction by ID",
     description="Retrieve a specific salary deduction by its ID"
 )
 def get_deduction(
-    business_id: int,
-    deduction_id: int,
+    deduction_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -96,20 +100,22 @@ def get_deduction(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID or deduction ID"
         )
+    # validate user access to business
+    validate_business_access(business_id, current_user, db)
     return service.get(db, deduction_id, business_id)
 
 
 # 🚀 UPDATE (Business Scoped)
 @router.put(
-    "/{business_id}/{deduction_id}",
+    "/{deduction_id}",
     response_model=SalaryDeductionResponse,
     summary="Update salary deduction",
     description="Update an existing salary deduction"
 )
 def update_deduction(
-    business_id: int,
-    deduction_id: int,
-    data: SalaryDeductionUpdate,
+    deduction_id: int = Path(...),
+    business_id: int = Path(...),
+    data: SalaryDeductionUpdate = ...,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -126,19 +132,21 @@ def update_deduction(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID or deduction ID"
         )
+    # validate user access to business
+    validate_business_access(business_id, current_user, db)
     return service.update(db, deduction_id, business_id, data)
 
 
 # 🚀 DELETE (Business Scoped)
 @router.delete(
-    "/{business_id}/{deduction_id}",
+    "/{deduction_id}",
     status_code=status.HTTP_200_OK,
     summary="Delete salary deduction",
     description="Delete a salary deduction (if not in use)"
 )
 def delete_deduction(
-    business_id: int,
-    deduction_id: int,
+    deduction_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -155,5 +163,7 @@ def delete_deduction(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID or deduction ID"
         )
+    # validate user access to business
+    validate_business_access(business_id, current_user, db)
     service.delete(db, deduction_id, business_id)
     return {"message": "Salary deduction deleted successfully"}

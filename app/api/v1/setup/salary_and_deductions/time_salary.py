@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Path, Body
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 
 from app.schemas.setup.salary_and_deductions.time_salary import (
@@ -21,14 +21,14 @@ service = TimeSalaryRuleService()
 
 
 @router.get(
-    "/{business_id}/{component_id}",
+    "/{component_id}",
     response_model=list[TimeRuleResponse],
     summary="Get time salary rules for a component",
     description="Retrieve all time salary rules for a specific business and salary component"
 )
 def list_rules(
-    business_id: int,
-    component_id: int,
+    component_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -44,21 +44,21 @@ def list_rules(
         raise HTTPException(status_code=400, detail="Business ID must be positive")
     if component_id <= 0:
         raise HTTPException(status_code=400, detail="Component ID must be positive")
-    
+    validate_business_access(business_id, current_user, db)
     return service.list(db, business_id, component_id)
 
 
 @router.post(
-    "/{business_id}/{component_id}",
+    "/{component_id}",
     response_model=TimeRuleResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new time salary rule",
     description="Create a new time salary rule with attendance, shift, and timing configurations"
 )
 def create_rule(
-    business_id: int,
-    component_id: int,
-    data: TimeRuleCreate,
+    component_id: int = Path(...),
+    data: TimeRuleCreate = Body(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -85,6 +85,7 @@ def create_rule(
             raise HTTPException(status_code=400, detail="Business ID must be positive")
         if component_id <= 0:
             raise HTTPException(status_code=400, detail="Component ID must be positive")
+        validate_business_access(business_id, current_user, db)
         return service.create(db, business_id, component_id, data)
     except IntegrityError as e:
         raise HTTPException(
@@ -96,15 +97,15 @@ def create_rule(
 
 
 @router.put(
-    "/{business_id}/{rule_id}",
+    "/{rule_id}",
     response_model=TimeRuleResponse,
     summary="Update an existing time salary rule",
     description="Update specific fields of an existing time salary rule"
 )
 def update_rule(
-    business_id: int,
-    rule_id: int,
-    data: TimeRuleUpdate,
+    rule_id: int = Path(...),
+    data: TimeRuleUpdate = Body(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -121,7 +122,7 @@ def update_rule(
         raise HTTPException(status_code=400, detail="Business ID must be positive")
     if rule_id <= 0:
         raise HTTPException(status_code=400, detail="Rule ID must be positive")
-    
+    validate_business_access(business_id, current_user, db)
     try:
         return service.update(db, rule_id, business_id, data)
     except HTTPException:
@@ -131,14 +132,14 @@ def update_rule(
 
 
 @router.delete(
-    "/{business_id}/{rule_id}",
+    "/{rule_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a time salary rule",
     description="Delete an existing time salary rule by ID"
 )
 def delete_rule(
-    business_id: int,
-    rule_id: int,
+    rule_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -154,7 +155,7 @@ def delete_rule(
         raise HTTPException(status_code=400, detail="Business ID must be positive")
     if rule_id <= 0:
         raise HTTPException(status_code=400, detail="Rule ID must be positive")
-    
+    validate_business_access(business_id, current_user, db)
     try:
         service.delete(db, rule_id, business_id)
         return None

@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 
 from app.schemas.setup.salary_and_deductions.salary_structure import (
@@ -21,13 +21,13 @@ service = SalaryStructureService()
 
 # ✅ List all structures for a business
 @router.get(
-    "/{business_id}",
+    "",
     response_model=list[SalaryStructureResponse],
     summary="List all salary structures for a business",
     description="Retrieve all salary structures configured for a specific business"
 )
 def list_structures(
-    business_id: int,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -41,20 +41,21 @@ def list_structures(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID"
         )
+    validate_business_access(business_id, current_user, db)
     return service.list_by_business(db, business_id)
 
 
 # ✅ Create structure (business_id comes from payload)
 @router.post(
-    "/{business_id}",
+    "",
     response_model=SalaryStructureResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create salary structure",
     description="Create a new salary structure with allocation rules"
 )
 def create_structure(
-    business_id: int,
     data: SalaryStructureCreate,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -68,19 +69,20 @@ def create_structure(
     """
     if business_id <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid business ID")
+    validate_business_access(business_id, current_user, db)
     return service.create(db, business_id, data)
 
 
 # ✅ Get a single structure (business scoped)
 @router.get(
-    "/{business_id}/{structure_id}",
+    "/{structure_id}",
     response_model=SalaryStructureResponse,
     summary="Get salary structure by ID",
     description="Retrieve a specific salary structure with its allocation rules"
 )
 def get_structure(
-    business_id: int,
-    structure_id: int,
+    structure_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -95,20 +97,21 @@ def get_structure(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID or structure ID"
         )
+    validate_business_access(business_id, current_user, db)
     return service.get_by_business(db, structure_id, business_id)
 
 
 # ✅ Update a structure (business scoped)
 @router.put(
-    "/{business_id}/{structure_id}",
+    "/{structure_id}",
     response_model=SalaryStructureResponse,
     summary="Update salary structure",
     description="Update an existing salary structure"
 )
 def update_structure(
-    business_id: int,
-    structure_id: int,
-    data: SalaryStructureUpdate,
+    structure_id: int = Path(...),
+    business_id: int = Path(...),
+    data: SalaryStructureUpdate = ...,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -125,19 +128,20 @@ def update_structure(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID or structure ID"
         )
+    validate_business_access(business_id, current_user, db)
     return service.update(db, structure_id, business_id, data)
 
 
 # ✅ Delete a structure (business scoped)
 @router.delete(
-    "/{business_id}/{structure_id}",
+    "/{structure_id}",
     status_code=status.HTTP_200_OK,
     summary="Delete salary structure",
     description="Delete a salary structure (if not in use)"
 )
 def delete_structure(
-    business_id: int,
-    structure_id: int,
+    structure_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -154,5 +158,6 @@ def delete_structure(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID or structure ID"
         )
+    validate_business_access(business_id, current_user, db)
     service.delete(db, structure_id, business_id)
     return {"message": "Salary structure deleted successfully"}

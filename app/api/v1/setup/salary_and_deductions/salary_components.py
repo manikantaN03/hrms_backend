@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Path
 from sqlalchemy.orm import Session
 
-from app.api.v1.deps import get_db, get_current_admin
+from app.api.v1.deps import get_db, get_current_admin, validate_business_access
 from app.models.user import User
 
 from app.services.setup.salary_and_deductions.salary_component_service import SalaryComponentService
@@ -20,13 +20,13 @@ service = SalaryComponentService()
 # LIST ALL COMPONENTS FOR A BUSINESS
 # ---------------------------------------------------------
 @router.get(
-    "/{business_id}",
+    "",
     response_model=list[SalaryComponentOut],
     summary="List all salary components for a business",
     description="Retrieve all salary components configured for a specific business"
 )
 def list_components(
-    business_id: int,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -40,6 +40,8 @@ def list_components(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID"
         )
+    # verify user has access to this business
+    validate_business_access(business_id, current_user, db)
     return service.list(db, business_id)
 
 
@@ -47,14 +49,14 @@ def list_components(
 # GET A SINGLE COMPONENT (BUSINESS-SCOPED)
 # ---------------------------------------------------------
 @router.get(
-    "/{business_id}/{component_id}",
+    "/{component_id}",
     response_model=SalaryComponentOut,
     summary="Get salary component by ID",
     description="Retrieve a specific salary component by its ID"
 )
 def get_component(
-    business_id: int,
-    component_id: int,
+    component_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -69,6 +71,8 @@ def get_component(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID or component ID"
         )
+    # verify user has access to this business
+    validate_business_access(business_id, current_user, db)
     return service.get(db, component_id, business_id)
 
 
@@ -76,15 +80,15 @@ def get_component(
 # CREATE COMPONENT (BUSINESS-SCOPED)
 # ---------------------------------------------------------
 @router.post(
-    "/{business_id}",
+    "",
     response_model=SalaryComponentOut,
     status_code=status.HTTP_201_CREATED,
     summary="Create salary component",
     description="Create a new salary component for a business"
 )
 def create_component(
-    business_id: int,
     data: SalaryComponentCreate,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -100,6 +104,8 @@ def create_component(
     """
     if business_id <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid business ID")
+    # verify user has access to this business
+    validate_business_access(business_id, current_user, db)
     return service.create(db, business_id, data)
 
 
@@ -107,15 +113,15 @@ def create_component(
 # UPDATE COMPONENT (BUSINESS-SCOPED)
 # ---------------------------------------------------------
 @router.put(
-    "/{business_id}/{component_id}",
+    "/{component_id}",
     response_model=SalaryComponentOut,
     summary="Update salary component",
     description="Update an existing salary component"
 )
 def update_component(
-    business_id: int,
-    component_id: int,
-    data: SalaryComponentUpdate,
+    component_id: int = Path(...),
+    business_id: int = Path(...),
+    data: SalaryComponentUpdate = ...,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -132,6 +138,8 @@ def update_component(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID or component ID"
         )
+    # verify user has access to this business
+    validate_business_access(business_id, current_user, db)
     return service.update(db, component_id, business_id, data)
 
 
@@ -139,14 +147,14 @@ def update_component(
 # DELETE COMPONENT (BUSINESS-SCOPED)
 # ---------------------------------------------------------
 @router.delete(
-    "/{business_id}/{component_id}",
+    "/{component_id}",
     status_code=status.HTTP_200_OK,
     summary="Delete salary component",
     description="Delete a salary component (if not in use)"
 )
 def delete_component(
-    business_id: int,
-    component_id: int,
+    component_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -163,5 +171,7 @@ def delete_component(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID or component ID"
         )
+    # verify user has access to this business
+    validate_business_access(business_id, current_user, db)
     service.delete(db, component_id, business_id)
     return {"message": "Salary component deleted successfully"}

@@ -127,14 +127,14 @@ api_router.include_router(
 
 api_router.include_router(
     salary_setup.router,
-    prefix="/setup/salarysetup",
+    prefix="/{business_id}/setup/salarysetup",
     tags=["Setup"]
 )
 
 # Business Unit Files (Image Upload)
 api_router.include_router(
     business_unit_files_router,
-    prefix="/setup/business-unit-files",
+    prefix="/{business_id}/setup/business-unit-files",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
@@ -142,37 +142,37 @@ api_router.include_router(
 # Salary Components (Under Setup)
 api_router.include_router(
     salary_component_router,
-    prefix="/setup/salarysetup/salary-components",
+    prefix="/{business_id}/setup/salarysetup/salary-components",
     tags=["Setup"]
 )
 
 api_router.include_router(
     salary_deduction_router,
-    prefix="/setup/salarysetup/salary-deductions",
+    prefix="/{business_id}/setup/salarysetup/salary-deductions",
     tags=["Setup"]
 )
 
 api_router.include_router(
     salary_structure_router,
-    prefix="/setup/salarysetup/salary-structures",
+    prefix="/{business_id}/setup/salarysetup/salary-structures",
     tags=["Setup"]
 )
 
 api_router.include_router(
     salary_structure_rule_router,
-    prefix="/setup/salarysetup",
+    prefix="/{business_id}/setup/salarysetup",
     tags=["Setup"]
 )
 
 api_router.include_router(
     time_salary_router,
-    prefix="/setup/salarysetup/time-salary",
+    prefix="/{business_id}/setup/salarysetup/time-salary",
     tags=["Setup"]
 )
 
 api_router.include_router(
     overtime_router,
-    prefix="/setup/salarysetup/overtime",
+    prefix="/{business_id}/setup/salarysetup/overtime",
     tags=["Setup"]
 )
 
@@ -182,49 +182,49 @@ api_router.include_router(
 
 api_router.include_router(
     attendance_settings.router,
-    prefix="/setup/leaves-attendance-setup/attendance-settings",
+    prefix="/{business_id}/setup/leaves-attendance-setup/attendance-settings",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     leave_types.router,
-    prefix="/setup/leaves-attendance-setup/leave-type",
+    prefix="/{business_id}/setup/leaves-attendance-setup/leave-type",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     leave_policies.router,
-    prefix="/setup/leaves-attendance-setup/leave-policies",
+    prefix="/{business_id}/setup/leaves-attendance-setup/leave-policies",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     holidays.router,
-    prefix="/setup/holidays",
+    prefix="/{business_id}/setup/holidays",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     compoff_rules.router,
-    prefix="/setup/compoff-rules",
+    prefix="/{business_id}/setup/compoff-rules",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     strike_rules.router,
-    prefix="/setup/strike-rules",
+    prefix="/{business_id}/setup/strike-rules",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     strike_adjustments.router,
-    prefix="/setup/strike-adjustments",
+    prefix="/{business_id}/setup/strike-adjustments",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
@@ -235,49 +235,49 @@ api_router.include_router(
 
 api_router.include_router(
     esi_settings.router,
-    prefix="/setup/esi-settings",
+    prefix="/{business_id}/setup/esi-settings",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     epf_settings.router,
-    prefix="/setup/epf-settings",
+    prefix="/{business_id}/setup/epf-settings",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     professional_tax.router,
-    prefix="/setup/professional-tax",
+    prefix="/{business_id}/setup/professional-tax",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     form16.router,
-    prefix="/setup/form16",
+    prefix="/{business_id}/setup/form16",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     tds24q.router,
-    prefix="/setup/tds24q",
+    prefix="/{business_id}/setup/tds24q",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     lwf.router,
-    prefix="/setup/lwf",
+    prefix="/{business_id}/setup/lwf",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )   
 
 api_router.include_router(
     tax.router,
-    prefix="/setup/tax",
+    prefix="/{business_id}/setup/tax",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
@@ -288,14 +288,14 @@ api_router.include_router(
 
 api_router.include_router(
     approvals.router,
-    prefix="/setup/ess",
+    prefix="/{business_id}/setup/ess",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     user_management.router,
-    prefix="/setup/ess",
+    prefix="/{business_id}/setup/ess",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
@@ -306,42 +306,42 @@ api_router.include_router(
 
 api_router.include_router(
     emailsettings.router,
-    prefix="/setup",
+    prefix="/{business_id}/setup",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     biometricsync.router,
-    prefix="/setup",
+    prefix="/{business_id}/setup",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     gatekeeper.router,
-    prefix="/setup",
+    prefix="/{business_id}/setup",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     sqlserver.router,
-    prefix="/setup",
+    prefix="/{business_id}/setup",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     api_access.router,
-    prefix="/setup",
+    prefix="/{business_id}/setup",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(
     sap_mapping.router,
-    prefix="/setup",
+    prefix="/{business_id}/setup",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )
@@ -352,7 +352,7 @@ api_router.include_router(
 
 api_router.include_router(
     maintenance.router,
-    prefix="/setup",
+    prefix="/{business_id}/setup",
     tags=["Setup"],
     dependencies=[Depends(get_current_admin)],
 )

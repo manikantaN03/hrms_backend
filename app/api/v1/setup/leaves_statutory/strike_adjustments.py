@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -44,7 +44,7 @@ def create(adjustment: StrikeAdjustmentCreate, db: Session = Depends(get_db), cu
 
 @router.get("/")
 def get_all(
-    business_id: Optional[int] = Query(None, description="Filter by business ID"),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -68,7 +68,7 @@ def get_all(
 @router.get("/{id}")
 def get_by_id(
     id: int,
-    business_id: int = Query(..., description="Business id for validation"),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -98,8 +98,8 @@ def get_by_id(
 @router.put("/{id}", response_model=StrikeAdjustmentResponse)
 def update(
     id: int,
-    adjustment: StrikeAdjustmentUpdate,
-    business_id: int = Query(..., description="Business id for validation"),
+    adjustment: StrikeAdjustmentUpdate = Body(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -131,7 +131,7 @@ def update(
 @router.delete("/{id}", status_code=200)
 def delete(
     id: int,
-    business_id: int = Query(..., description="Business id for validation"),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):

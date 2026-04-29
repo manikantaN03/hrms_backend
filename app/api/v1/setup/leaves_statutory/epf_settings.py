@@ -3,7 +3,7 @@ EPF Settings Endpoints
 API routes for EPF configuration
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 from typing import List
 import logging
@@ -34,7 +34,7 @@ router = APIRouter()
     summary="Get EPF Settings"
 )
 def get_epf_settings(
-    business_id: int,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):

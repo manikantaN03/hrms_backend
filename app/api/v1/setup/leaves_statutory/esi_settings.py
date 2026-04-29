@@ -3,7 +3,7 @@ ESI Settings Endpoints
 API routes for ESI configuration
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 from typing import List
 import logging
@@ -34,7 +34,7 @@ router = APIRouter()
     summary="Get ESI Settings"
 )
 def get_esi_settings(
-    business_id: int,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):

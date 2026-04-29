@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -28,6 +28,7 @@ def root():
 @router.post("/", response_model=LeavePolicyResponse, status_code=201)
 def create_leave_policy(
     policy: LeavePolicyCreate,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -39,8 +40,8 @@ def create_leave_policy(
     - Works for both business owners and employees
     """
     try:
-        # Get user's business ID (works for owners and employees)
-        business_id = get_user_business_id(current_admin, db)
+        # Validate business access
+        validate_business_access(business_id, current_admin, db)
         
         existing = db.query(LeavePolicy).filter(
             LeavePolicy.leave_type == policy.leave_type,
@@ -80,7 +81,7 @@ def create_leave_policy(
 
 @router.get("/list", response_model=List[LeavePolicyResponse])
 def get_all_leave_policies(
-    business_id: Optional[int] = Query(None, description="Business ID (ignored - uses user's business)"),
+    business_id: int = Path(...),
     leave_type: Optional[str] = None,
     grant_enabled: Optional[bool] = None,
     lapse_enabled: Optional[bool] = None,
@@ -97,13 +98,12 @@ def get_all_leave_policies(
     - Always uses user's business_id from get_user_business_id()
     - Returns only policies for user's business
     """
-    # Get user's business ID (works for owners and employees)
-    # This may raise HTTPException(403) if user has no business access
-    user_business_id = get_user_business_id(current_admin, db)
+    # Validate business access
+    validate_business_access(business_id, current_admin, db)
     
     try:
-        # Always filter by user's business, ignore frontend business_id parameter
-        query = db.query(LeavePolicy).filter(LeavePolicy.business_id == user_business_id)
+        # Filter by business_id
+        query = db.query(LeavePolicy).filter(LeavePolicy.business_id == business_id)
         
         if leave_type:
             query = query.filter(LeavePolicy.leave_type.ilike(f"%{leave_type}%"))
@@ -120,8 +120,8 @@ def get_all_leave_policies(
 
 @router.get("/{policy_id}", response_model=LeavePolicyResponse)
 def get_leave_policy(
-    policy_id: int,
-    business_id: Optional[int] = Query(None, description="Business ID (ignored - uses user's business)"),
+    policy_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -132,13 +132,13 @@ def get_leave_policy(
     - Only returns policy if it belongs to user's business
     - Returns 404 if policy belongs to different business
     """
-    # Get user's business ID
-    user_business_id = get_user_business_id(current_admin, db)
+    # Validate business access
+    validate_business_access(business_id, current_admin, db)
     
     # Query with business isolation
     policy = db.query(LeavePolicy).filter(
         LeavePolicy.id == policy_id,
-        LeavePolicy.business_id == user_business_id
+        LeavePolicy.business_id == business_id
     ).first()
     
     if not policy:
@@ -150,7 +150,7 @@ def get_leave_policy(
 @router.get("/type/{leave_type}", response_model=LeavePolicyResponse)
 def get_leave_policy_by_type(
     leave_type: str,
-    business_id: Optional[int] = Query(None, description="Business ID (ignored - uses user's business)"),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -161,12 +161,12 @@ def get_leave_policy_by_type(
     - Only returns policy if it belongs to user's business
     - Returns 404 if policy belongs to different business
     """
-    # Get user's business ID
-    user_business_id = get_user_business_id(current_admin, db)
+    # Validate business access
+    validate_business_access(business_id, current_admin, db)
     
     policy = db.query(LeavePolicy).filter(
         LeavePolicy.leave_type == leave_type,
-        LeavePolicy.business_id == user_business_id
+        LeavePolicy.business_id == business_id
     ).first()
     
     if not policy:
@@ -177,9 +177,9 @@ def get_leave_policy_by_type(
 
 @router.put("/{policy_id}", response_model=LeavePolicyResponse)
 def update_leave_policy(
-    policy_id: int,
-    policy: LeavePolicyUpdate,
-    business_id: Optional[int] = Query(None, description="Business ID (ignored - uses user's business)"),
+    policy_id: int = Path(...),
+    business_id: int = Path(...),
+    policy: LeavePolicyUpdate = ...,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -191,13 +191,13 @@ def update_leave_policy(
     - Returns 404 if policy belongs to different business
     """
     try:
-        # Get user's business ID
-        user_business_id = get_user_business_id(current_admin, db)
+        # Validate business access
+        validate_business_access(business_id, current_admin, db)
         
         # Query with business isolation
         db_policy = db.query(LeavePolicy).filter(
             LeavePolicy.id == policy_id,
-            LeavePolicy.business_id == user_business_id
+            LeavePolicy.business_id == business_id
         ).first()
         
         if not db_policy:
@@ -207,7 +207,7 @@ def update_leave_policy(
         if db_policy.leave_type != policy.leave_type:
             existing = db.query(LeavePolicy).filter(
                 LeavePolicy.leave_type == policy.leave_type,
-                LeavePolicy.business_id == user_business_id,
+                LeavePolicy.business_id == business_id,
                 LeavePolicy.id != policy_id
             ).first()
             if existing:
@@ -239,8 +239,8 @@ def update_leave_policy(
 
 @router.delete("/{policy_id}", status_code=200)
 def delete_leave_policy(
-    policy_id: int,
-    business_id: Optional[int] = Query(None, description="Business ID (ignored - uses user's business)"),
+    policy_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -252,13 +252,13 @@ def delete_leave_policy(
     - Returns 404 if policy belongs to different business
     """
     try:
-        # Get user's business ID
-        user_business_id = get_user_business_id(current_admin, db)
+        # Validate business access
+        validate_business_access(business_id, current_admin, db)
         
         # Query with business isolation
         policy = db.query(LeavePolicy).filter(
             LeavePolicy.id == policy_id,
-            LeavePolicy.business_id == user_business_id
+            LeavePolicy.business_id == business_id
         ).first()
         
         if not policy:
@@ -277,10 +277,10 @@ def delete_leave_policy(
 
 @router.post("/{policy_id}/calculate-grant")
 def calculate_monthly_grant(
-    policy_id: int,
+    policy_id: int = Path(...),
+    business_id: int = Path(...),
     presents_count: int = Query(..., ge=0),
     month: int = Query(..., ge=1, le=12),
-    business_id: Optional[int] = Query(None, description="Business ID (ignored - uses user's business)"),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -291,13 +291,13 @@ def calculate_monthly_grant(
     - Only calculates for policy if it belongs to user's business
     - Returns 404 if policy belongs to different business
     """
-    # Get user's business ID
-    user_business_id = get_user_business_id(current_admin, db)
+    # Validate business access
+    validate_business_access(business_id, current_admin, db)
     
     # Query with business isolation
     policy = db.query(LeavePolicy).filter(
         LeavePolicy.id == policy_id,
-        LeavePolicy.business_id == user_business_id
+        LeavePolicy.business_id == business_id
     ).first()
     
     if not policy:
@@ -314,10 +314,10 @@ def calculate_monthly_grant(
 
 @router.post("/{policy_id}/check-lapse")
 def check_lapse_eligibility(
-    policy_id: int,
+    policy_id: int = Path(...),
+    business_id: int = Path(...),
     current_balance: float = Query(...),
     month: int = Query(..., ge=1, le=12),
-    business_id: Optional[int] = Query(None, description="Business ID (ignored - uses user's business)"),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -328,13 +328,13 @@ def check_lapse_eligibility(
     - Only checks for policy if it belongs to user's business
     - Returns 404 if policy belongs to different business
     """
-    # Get user's business ID
-    user_business_id = get_user_business_id(current_admin, db)
+    # Validate business access
+    validate_business_access(business_id, current_admin, db)
     
     # Query with business isolation
     policy = db.query(LeavePolicy).filter(
         LeavePolicy.id == policy_id,
-        LeavePolicy.business_id == user_business_id
+        LeavePolicy.business_id == business_id
     ).first()
     
     if not policy:
@@ -352,7 +352,7 @@ def check_lapse_eligibility(
 
 @router.get("/stats/summary")
 def get_policies_summary(
-    business_id: Optional[int] = Query(None, description="Business ID (ignored - uses user's business)"),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -363,11 +363,11 @@ def get_policies_summary(
     - Always uses user's business_id from get_user_business_id()
     - Returns only stats for user's business
     """
-    # Get user's business ID
-    user_business_id = get_user_business_id(current_admin, db)
+    # Validate business access
+    validate_business_access(business_id, current_admin, db)
     
     # Always filter by user's business
-    query = db.query(LeavePolicy).filter(LeavePolicy.business_id == user_business_id)
+    query = db.query(LeavePolicy).filter(LeavePolicy.business_id == business_id)
     
     total_policies = query.count()
     grant_enabled_count = query.filter(LeavePolicy.grant_enabled == True).count()

@@ -17,7 +17,7 @@ from app.repositories.business_unit_repository import BusinessUnitRepository
 
 from app.api.v1.endpoints.master_setup import validate_business_access_dep
 
-router = APIRouter(prefix="/{business_id}")
+router = APIRouter()
 
 
 # ============================================================================

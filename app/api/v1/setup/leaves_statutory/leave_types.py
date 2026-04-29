@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Path
 from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
@@ -13,6 +13,7 @@ router = APIRouter()
 @router.post("/", response_model=LeaveTypeResponse, status_code=201)
 def create_leave_type(
     payload: LeaveTypeCreate,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):
@@ -31,7 +32,7 @@ def create_leave_type(
 
 @router.get("/", response_model=List[LeaveTypeResponse])
 def get_leave_types(
-    business_id: int = Query(..., description="Business ID (required)"),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):
@@ -42,8 +43,8 @@ def get_leave_types(
 
 @router.get("/{leave_type_id}", response_model=LeaveTypeResponse)
 def get_leave_type(
-    leave_type_id: int,
-    business_id: int = Query(..., description="Business ID (required)"),
+    leave_type_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):
@@ -54,9 +55,9 @@ def get_leave_type(
 
 @router.put("/{leave_type_id}", response_model=LeaveTypeResponse)
 def update_leave_type(
-    leave_type_id: int,
-    payload: LeaveTypeUpdate,
-    business_id: int = Query(..., description="Business ID (required)"),
+    leave_type_id: int = Path(...),
+    business_id: int = Path(...),
+    payload: LeaveTypeUpdate = ...,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):
@@ -67,8 +68,8 @@ def update_leave_type(
 
 @router.delete("/{leave_type_id}")
 def delete_leave_type(
-    leave_type_id: int,
-    business_id: int = Query(..., description="Business ID (required)"),
+    leave_type_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):

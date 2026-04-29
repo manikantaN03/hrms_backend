@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Path
 from typing import List, Optional
 from sqlalchemy.orm import Session
 
@@ -52,7 +52,7 @@ def create_rule(rule: StrikeRuleCreate, db: Session = Depends(get_db), current_a
 @router.get("/", response_model=List[StrikeRuleResponse])
 def read_rules(
     rule_type: Optional[str] = None,
-    business_id: int = Query(..., description="Business id for validation"),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -75,7 +75,7 @@ def read_rules(
 
 
 @router.get("/{rule_id}", response_model=StrikeRuleResponse)
-def read_rule(rule_id: int, business_id: int = Query(..., description="Business id for validation"), db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+def read_rule(rule_id: int, business_id: int = Path(..., description="Business id for validation"), db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     db_rule = get_strike_rule(db, rule_id)
     if not db_rule:
         raise HTTPException(404, "Strike rule not found")
@@ -97,7 +97,7 @@ def read_rule(rule_id: int, business_id: int = Query(..., description="Business 
 @router.get("/type/{rule_type}", response_model=List[StrikeRuleResponse])
 def read_rules_by_type(
     rule_type: str,
-    business_id: int = Query(..., description="Business id for validation"),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -113,7 +113,7 @@ def read_rules_by_type(
 
 
 @router.put("/{rule_id}", response_model=StrikeRuleResponse)
-def update_rule(rule_id: int, rule_update: StrikeRuleUpdate, business_id: int = Query(..., description="Business id for validation"), db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+def update_rule(rule_id: int, rule_update: StrikeRuleUpdate, business_id: int = Path(..., description="Business id for validation"), db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     db_rule = get_strike_rule(db, rule_id)
     if not db_rule:
         raise HTTPException(404, "Strike rule not found")
@@ -143,7 +143,7 @@ def update_rule(rule_id: int, rule_update: StrikeRuleUpdate, business_id: int = 
 
 
 @router.delete("/{rule_id}", status_code=200)
-def delete_rule(rule_id: int, business_id: int = Query(..., description="Business id for validation"), db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+def delete_rule(rule_id: int, business_id: int = Path(..., description="Business id for validation"), db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     db_rule = get_strike_rule(db, rule_id)
     if not db_rule:
         raise HTTPException(404, "Strike rule not found")
@@ -166,7 +166,7 @@ def delete_rule(rule_id: int, business_id: int = Query(..., description="Busines
 def get_summary(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
-    business_id: int = Query(..., description="Business id for validation"),
+    business_id: int = Path(...)
 ):
     # validate business and admin access
     biz = db.query(Business).filter(Business.id == business_id).first()

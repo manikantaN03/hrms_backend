@@ -3,12 +3,12 @@ ESS User Management Endpoints
 API routes for managing employee access to mobile app and web portal
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 from app.models.business import Business
 from app.schemas.user_management_schema import (
@@ -41,12 +41,12 @@ def validate_business_exists(db: Session, business_id: int) -> Business:
 # ============================================================================
 
 @router.get(
-    "/filter-options/{business_id}",
+    "/filter-options",
     status_code=status.HTTP_200_OK,
     summary="Get filter options for employee selection",
 )
 def get_filter_options(
-    business_id: int,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -54,7 +54,7 @@ def get_filter_options(
     Get available locations, cost centers, and departments for filtering employees
     **Access:** ADMIN or SUPERADMIN
     """
-    validate_business_exists(db, business_id)
+    validate_business_access(business_id, current_user, db)
     service = get_user_management_service(db)
     
     options = service.get_filter_options(business_id)
@@ -80,7 +80,7 @@ async def send_mobile_login(
     Send mobile app login details to selected employees via email
     **Access:** ADMIN or SUPERADMIN
     """
-    validate_business_exists(db, request.business_id)
+    validate_business_access(request.business_id, current_user, db)
     service = get_user_management_service(db)
     
     result = await service.send_mobile_login_details(
@@ -115,7 +115,7 @@ async def send_web_login(
     Create web portal accounts and send invitation emails to selected employees
     **Access:** ADMIN or SUPERADMIN
     """
-    validate_business_exists(db, request.business_id)
+    validate_business_access(request.business_id, current_user, db)
     service = get_user_management_service(db)
     
     result = await service.send_web_login_invitations(
@@ -142,7 +142,7 @@ async def send_web_login(
     summary="Get count of employees matching filter criteria",
 )
 def get_employee_count(
-    business_id: int,
+    business_id: int = Path(...),
     location: Optional[str] = None,
     cost_center: Optional[str] = None,
     department: Optional[str] = None,
@@ -153,7 +153,7 @@ def get_employee_count(
     Get count of employees that match the filter criteria
     **Access:** ADMIN or SUPERADMIN
     """
-    validate_business_exists(db, business_id)
+    validate_business_access(business_id, current_user, db)
     service = get_user_management_service(db)
     
     count = service.get_filtered_employee_count(

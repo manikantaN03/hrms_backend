@@ -1,6 +1,6 @@
 # app/api/routes/setup/Integrations/sap_mapping.py
 
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Path, Body
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -22,17 +22,17 @@ router = APIRouter(prefix="/integrations/sap-mapping")
 # LIST SAP MAPPINGS (BUSINESS-SCOPED)
 # ---------------------------------------------------------
 @router.get(
-    "/{business_id}",
+    "/",
     response_model=list[SAPMappingResponse],
     response_model_exclude_none=True,
 )
 def list_sap_mappings(
-    business_id: int,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
     """
-    GET /api/v1/integrations/sap-mapping/{business_id}
+    GET /api/v1/integrations/sap-mapping/
     """
     # CRITICAL: Validate user owns this business
     from app.api.v1.endpoints.master_setup import get_user_business_id
@@ -76,19 +76,19 @@ def create_sap_mapping(
 # UPDATE SAP MAPPING (BUSINESS-SCOPED)
 # ---------------------------------------------------------
 @router.put(
-    "/{business_id}/{mapping_id}",
+    "/{mapping_id}",
     response_model=SAPMappingResponse,
     response_model_exclude_none=True,
 )
 def update_sap_mapping(
-    business_id: int,
-    mapping_id: int,
-    payload: SAPMappingUpdate,
+    business_id: int = Path(...),
+    mapping_id: int = Path(...),
+    payload: SAPMappingUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
     """
-    PUT /api/v1/integrations/sap-mapping/{business_id}/{mapping_id}
+    PUT /api/v1/integrations/sap-mapping/{mapping_id}
     """
     # CRITICAL: Validate user owns this business
     from app.api.v1.endpoints.master_setup import get_user_business_id
@@ -108,17 +108,17 @@ def update_sap_mapping(
 # DELETE SAP MAPPING (BUSINESS-SCOPED)
 # ---------------------------------------------------------
 @router.delete(
-    "/{business_id}/{mapping_id}",
+    "/{mapping_id}",
     status_code=status.HTTP_200_OK,
 )
 def delete_sap_mapping(
-    business_id: int,
-    mapping_id: int,
+    business_id: int = Path(...),
+    mapping_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
     """
-    DELETE /api/v1/integrations/sap-mapping/{business_id}/{mapping_id}
+    DELETE /api/v1/integrations/sap-mapping/{mapping_id}
     """
     # CRITICAL: Validate user owns this business
     from app.api.v1.endpoints.master_setup import get_user_business_id

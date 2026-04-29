@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Path, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 
 from app.schemas.setup.salary_and_deductions.overtime import (
@@ -34,13 +34,13 @@ router = APIRouter()
 # ============================================================
 
 @router.get(
-    "/policies/{business_id}", 
+    "/policies", 
     response_model=list[OvertimePolicyOut],
     summary="Get all overtime policies",
     description="Retrieve all overtime policies for a specific business"
 )
 def list_policies(
-    business_id: int,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -53,20 +53,20 @@ def list_policies(
     """
     if business_id <= 0:
         raise HTTPException(status_code=400, detail="Business ID must be positive")
-    
+    validate_business_access(business_id, current_user, db)
     return policy_service.list(db, business_id)
 
 
 @router.post(
-    "/policies/{business_id}", 
+    "/policies", 
     response_model=OvertimePolicyOut, 
     status_code=status.HTTP_201_CREATED,
     summary="Create a new overtime policy",
     description="Create a new overtime policy with a unique name"
 )
 def create_policy(
-    business_id: int,
     data: OvertimePolicyCreate,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -82,6 +82,7 @@ def create_policy(
     try:
         if business_id <= 0:
             raise HTTPException(status_code=400, detail="Business ID must be positive")
+        validate_business_access(business_id, current_user, db)
         return policy_service.create_with_business(db, business_id, data)
     except IntegrityError as e:
         if 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
@@ -98,15 +99,15 @@ def create_policy(
 
 
 @router.put(
-    "/policies/{business_id}/{policy_id}", 
+    "/policies/{policy_id}", 
     response_model=OvertimePolicyOut,
     summary="Update an existing overtime policy",
     description="Update specific fields of an existing overtime policy"
 )
 def update_policy(
-    business_id: int,
-    policy_id: int,
-    data: OvertimePolicyUpdate,
+    policy_id: int = Path(...),
+    business_id: int = Path(...),
+    data: OvertimePolicyUpdate = ...,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -123,7 +124,7 @@ def update_policy(
         raise HTTPException(status_code=400, detail="Business ID must be positive")
     if policy_id <= 0:
         raise HTTPException(status_code=400, detail="Policy ID must be positive")
-    
+    validate_business_access(business_id, current_user, db)
     try:
         return policy_service.update(db, policy_id, business_id, data)
     except HTTPException:
@@ -140,14 +141,14 @@ def update_policy(
 
 
 @router.delete(
-    "/policies/{business_id}/{policy_id}", 
+    "/policies/{policy_id}", 
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete an overtime policy",
     description="Delete an existing overtime policy by ID (cascades to rules)"
 )
 def delete_policy(
-    business_id: int,
-    policy_id: int,
+    policy_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -165,7 +166,7 @@ def delete_policy(
         raise HTTPException(status_code=400, detail="Business ID must be positive")
     if policy_id <= 0:
         raise HTTPException(status_code=400, detail="Policy ID must be positive")
-    
+    validate_business_access(business_id, current_user, db)
     try:
         policy_service.delete(db, policy_id, business_id)
         return None
@@ -180,14 +181,14 @@ def delete_policy(
 # ============================================================
 
 @router.get(
-    "/rules/{business_id}/{policy_id}", 
+    "/rules/{policy_id}", 
     response_model=list[OvertimeRuleOut],
     summary="Get overtime rules for a policy",
     description="Retrieve all overtime rules for a specific policy"
 )
 def list_rules(
-    business_id: int,
-    policy_id: int,
+    policy_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -203,21 +204,21 @@ def list_rules(
         raise HTTPException(status_code=400, detail="Business ID must be positive")
     if policy_id <= 0:
         raise HTTPException(status_code=400, detail="Policy ID must be positive")
-    
+    validate_business_access(business_id, current_user, db)
     return rule_service.list(db, policy_id, business_id)
 
 
 @router.post(
-    "/rules/{business_id}/{policy_id}", 
+    "/rules/{policy_id}", 
     response_model=OvertimeRuleOut, 
     status_code=status.HTTP_201_CREATED,
     summary="Create a new overtime rule",
     description="Create a new overtime rule with attendance, time, and calculation configurations"
 )
 def create_rule(
-    business_id: int,
-    policy_id: int,
-    data: OvertimeRuleCreate,
+    policy_id: int = Path(...),
+    business_id: int = Path(...),
+    data: OvertimeRuleCreate = ...,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -245,6 +246,7 @@ def create_rule(
             raise HTTPException(status_code=400, detail="Business ID must be positive")
         if policy_id <= 0:
             raise HTTPException(status_code=400, detail="Policy ID must be positive")
+        validate_business_access(business_id, current_user, db)
         return rule_service.create(db, business_id, policy_id, data)
     except HTTPException:
         raise
@@ -258,15 +260,15 @@ def create_rule(
 
 
 @router.put(
-    "/rules/{business_id}/{rule_id}", 
+    "/rules/{rule_id}", 
     response_model=OvertimeRuleOut,
     summary="Update an existing overtime rule",
     description="Update specific fields of an existing overtime rule"
 )
 def update_rule(
-    business_id: int,
-    rule_id: int,
-    data: OvertimeRuleUpdate,
+    rule_id: int = Path(...),
+    business_id: int = Path(...),
+    data: OvertimeRuleUpdate = ...,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -283,7 +285,7 @@ def update_rule(
         raise HTTPException(status_code=400, detail="Business ID must be positive")
     if rule_id <= 0:
         raise HTTPException(status_code=400, detail="Rule ID must be positive")
-    
+    validate_business_access(business_id, current_user, db)
     try:
         return rule_service.update(db, rule_id, business_id, data)
     except HTTPException:
@@ -293,14 +295,14 @@ def update_rule(
 
 
 @router.delete(
-    "/rules/{business_id}/{rule_id}", 
+    "/rules/{rule_id}", 
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete an overtime rule",
     description="Delete an existing overtime rule by ID"
 )
 def delete_rule(
-    business_id: int,
-    rule_id: int,
+    rule_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -316,7 +318,7 @@ def delete_rule(
         raise HTTPException(status_code=400, detail="Business ID must be positive")
     if rule_id <= 0:
         raise HTTPException(status_code=400, detail="Rule ID must be positive")
-    
+    validate_business_access(business_id, current_user, db)
     try:
         rule_service.delete(db, rule_id, business_id)
         return None
@@ -331,14 +333,14 @@ def delete_rule(
 # ============================================================
 
 @router.get(
-    "/payable-components/{business_id}/{policy_id}", 
+    "/payable-components/{policy_id}", 
     response_model=list[OvertimePayableComponentOut],
     summary="Get payable components for a policy",
     description="Retrieve all payable components configuration for a specific overtime policy"
 )
 def list_payable_components(
-    business_id: int,
-    policy_id: int,
+    policy_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -354,21 +356,21 @@ def list_payable_components(
         raise HTTPException(status_code=400, detail="Business ID must be positive")
     if policy_id <= 0:
         raise HTTPException(status_code=400, detail="Policy ID must be positive")
-    
+    validate_business_access(business_id, current_user, db)
     return payable_component_service.list_by_policy(db, policy_id, business_id)
 
 
 @router.post(
-    "/payable-components/{business_id}/{policy_id}/{component_id}/toggle", 
+    "/payable-components/{policy_id}/{component_id}/toggle", 
     response_model=OvertimePayableComponentOut,
     summary="Toggle payable status for a component",
     description="Enable or disable a salary component for overtime calculation in a specific policy"
 )
 def toggle_payable_component(
-    business_id: int,
-    policy_id: int,
-    component_id: int,
-    is_payable: bool,
+    policy_id: int = Path(...),
+    component_id: int = Path(...),
+    business_id: int = Path(...),
+    is_payable: bool = Query(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -388,7 +390,7 @@ def toggle_payable_component(
         raise HTTPException(status_code=400, detail="Policy ID must be positive")
     if component_id <= 0:
         raise HTTPException(status_code=400, detail="Component ID must be positive")
-    
+    validate_business_access(business_id, current_user, db)
     try:
         return payable_component_service.toggle_payable(db, policy_id, component_id, business_id, is_payable)
     except HTTPException:

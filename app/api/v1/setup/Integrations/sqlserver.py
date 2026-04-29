@@ -3,11 +3,11 @@
 from typing import List, Optional
 from datetime import date
 
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, Path, Body
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 
 from app.schemas.setup.Integrations.sqlserver import (
@@ -25,11 +25,11 @@ router = APIRouter(
 # ---------- SOURCES ----------
 
 @router.get(
-    "/{business_id}",
+    "",
     response_model=List[SqlServerSourceOut],
 )
 def list_sql_sources(
-    business_id: int,
+    business_id: int = Path(...),
     tenant_id: Optional[int] = Query(default=None, alias="tenantId"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
@@ -37,6 +37,7 @@ def list_sql_sources(
     """
     List SQL Server sources for a given business (and optional tenant).
     """
+    validate_business_access(business_id, current_user, db)
     return svc.list_sources_service(
         db,
         business_id=business_id,
@@ -57,39 +58,42 @@ def create_sql_source(
     """
     Create a new SQL Server source.
     """
+    validate_business_access(payload.business_id, current_user, db)
     return svc.create_source_service(db, payload)
 
 
 @router.put(
-    "/{business_id}/{source_id}",
+    "/{source_id}",
     response_model=SqlServerSourceOut,
 )
 def update_sql_source(
-    business_id: int,
-    source_id: int,
-    payload: SqlServerSourceUpdate,
+    business_id: int = Path(...),
+    source_id: int = Path(...),
+    payload: SqlServerSourceUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
     """
     Update an existing SQL Server source by ID.
     """
+    validate_business_access(business_id, current_user, db)
     return svc.update_source_service(db, source_id, payload)
 
 
 @router.delete(
-    "/{business_id}/{source_id}",
+    "/{source_id}",
     status_code=status.HTTP_200_OK,
 )
 def delete_sql_source(
-    business_id: int,
-    source_id: int,
+    business_id: int = Path(...),
+    source_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
     """
     Delete a SQL Server source by ID.
     """
+    validate_business_access(business_id, current_user, db)
     svc.delete_source_service(db, source_id)
     return {"message": "SQL Server source deleted"}
 
@@ -97,12 +101,12 @@ def delete_sql_source(
 # ---------- LOGS ----------
 
 @router.get(
-    "/{business_id}/{source_id}/logs",
+    "/{source_id}/logs",
     response_model=List[SqlServerSyncLogOut],
 )
 def list_sql_source_logs(
-    business_id: int,
-    source_id: int,
+    business_id: int = Path(...),
+    source_id: int = Path(...),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
@@ -111,4 +115,5 @@ def list_sql_source_logs(
     """
     List sync logs for a specific SQL Server source.
     """
+    validate_business_access(business_id, current_user, db)
     return svc.list_logs_service(db, source_id, start_date, end_date)

@@ -3,11 +3,11 @@ Approval Settings Endpoints
 API routes for Approval configuration
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 from app.models.business import Business
 from app.schemas.approval_schema import (
@@ -37,7 +37,7 @@ def approval_to_response_dict(approval_obj) -> dict:
     """Convert approval object to response dictionary with camelCase keys"""
     if not approval_obj:
         return {}
-    
+
     return {
         "id": approval_obj.id,
         "businessId": approval_obj.business_id,
@@ -72,19 +72,19 @@ def approval_to_response_dict(approval_obj) -> dict:
 # ============================================================================
 
 @router.get(
-    "/{business_id}",
+    "/",
     status_code=status.HTTP_200_OK,
     summary="Get approval settings for a business",
 )
 def get_approval_settings(
-    business_id: int,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
     """
     **Access:** ADMIN or SUPERADMIN
     """
-    validate_business_exists(db, business_id)
+    validate_business_access(business_id, current_user, db)
     service = get_approval_service(db)
 
     settings = service.get_by_business(business_id)
@@ -143,7 +143,7 @@ def save_approval_settings(
             detail="business_id is required in request body",
         )
 
-    validate_business_exists(db, business_id)
+    validate_business_access(business_id, current_user, db)
     service = get_approval_service(db)
 
     # Convert to dict for repository

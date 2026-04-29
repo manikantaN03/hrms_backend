@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Path
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -13,7 +13,7 @@ router = APIRouter()
 
 
 @router.post("", response_model=HolidayResponse, status_code=201)
-def create_holiday(data: HolidayCreate, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+def create_holiday(data: HolidayCreate, business_id: int = Path(...), db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     # determine business_id: prefer payload, otherwise use first admin business
     biz_id = getattr(data, "business_id", None)
     if not biz_id:
@@ -32,7 +32,7 @@ def create_holiday(data: HolidayCreate, db: Session = Depends(get_db), current_a
 def get_holidays(
     location: str = Query(None),
     year: int = Query(None),
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -46,9 +46,9 @@ def get_holidays(
 
 @router.put("/{holiday_id}", response_model=HolidayResponse)
 def update_holiday(
-    holiday_id: int,
-    data: HolidayUpdate,
-    business_id: int = Query(..., description="business_id is required"),
+    holiday_id: int = Path(...),
+    business_id: int = Path(...),
+    data: HolidayUpdate = ...,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -64,8 +64,8 @@ def update_holiday(
 
 @router.delete("/{holiday_id}")
 def delete_holiday(
-    holiday_id: int,
-    business_id: int = Query(..., description="business_id is required"),
+    holiday_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -83,7 +83,7 @@ def delete_holiday(
 @router.post("/settings/", response_model=SettingResponse)
 def create_setting(
     data: SettingCreate,
-    business_id: int = Query(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -95,7 +95,7 @@ def create_setting(
 
 @router.get("/settings/", response_model=list[SettingResponse])
 def get_all_settings(
-    business_id: int = Query(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -108,7 +108,7 @@ def get_all_settings(
 @router.get("/settings/{setting_id}", response_model=SettingResponse)
 def get_setting(
     setting_id: int,
-    business_id: int = Query(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -127,7 +127,7 @@ def get_setting(
 def update_setting(
     setting_id: int,
     data: SettingUpdate,
-    business_id: int = Query(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -147,7 +147,7 @@ def update_setting(
 @router.delete("/settings/{setting_id}")
 def delete_setting(
     setting_id: int,
-    business_id: int = Query(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -167,7 +167,7 @@ def delete_setting(
 # Location endpoints
 @router.get("/locations", response_model=list[LocationResponse])
 def get_locations(
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = Path(..., description="business_id is required"),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -182,7 +182,7 @@ def get_locations(
 @router.post("/copy", status_code=200)
 def copy_holidays(
     data: CopyHolidaysRequest,
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = Path(..., description="business_id is required"),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):

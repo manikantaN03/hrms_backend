@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.orm import Session
 
 from app.schemas.compoff_rule_schema import (
@@ -25,6 +25,7 @@ router = APIRouter()
 @router.post("", response_model=CompOffRuleResponse, status_code=201)
 def create_comp_off_rule(
     data: CompOffRuleCreate,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -49,9 +50,9 @@ def create_comp_off_rule(
 # -------------------------------------------------------------------
 @router.get("/weekly-offs", response_model=CompOffRuleResponse)
 def get_weekly_offs_rule(
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required"),
 ):
     """Get Comp Off rules for weekly offs."""
     # prefer provided business_id, otherwise fall back to admin's first business
@@ -66,9 +67,9 @@ def get_weekly_offs_rule(
 
 @router.get("/holidays", response_model=CompOffRuleResponse)
 def get_holidays_rule(
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required"),
 ):
     """Get Comp Off rules for holidays."""
     biz_id = business_id or (current_admin.businesses[0].id if current_admin.businesses else None)
@@ -84,10 +85,10 @@ def get_holidays_rule(
 # -------------------------------------------------------------------
 @router.put("/weekly-offs", response_model=CompOffRuleResponse)
 def update_weekly_rule(
-    data: CompOffRuleUpdate,
+    business_id: int = Path(...),
+    data: CompOffRuleUpdate = ...,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required"),
 ):
     """Update Comp Off rules for weekly offs."""
     biz_id = business_id or (current_admin.businesses[0].id if current_admin.businesses else None)
@@ -100,10 +101,10 @@ def update_weekly_rule(
 
 @router.put("/holidays", response_model=CompOffRuleResponse)
 def update_holiday_rule(
-    data: CompOffRuleUpdate,
+    business_id: int = Path(...),
+    data: CompOffRuleUpdate = ...,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required"),
 ):
     """Update Comp Off rules for holidays."""
     biz_id = business_id or (current_admin.businesses[0].id if current_admin.businesses else None)
@@ -119,9 +120,9 @@ def update_holiday_rule(
 # -------------------------------------------------------------------
 @router.get("/summary")
 def rules_summary(
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required"),
 ):
     """Get summary of all Comp Off rules."""
     biz_id = business_id or (current_admin.businesses[0].id if current_admin.businesses else None)
@@ -154,9 +155,9 @@ def rules_summary(
 # -------------------------------------------------------------------
 @router.post("/reset")
 def reset_all_rules(
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required"),
 ):
     """Reset all Comp Off rules to default values."""
     biz_id = business_id or (current_admin.businesses[0].id if current_admin.businesses else None)

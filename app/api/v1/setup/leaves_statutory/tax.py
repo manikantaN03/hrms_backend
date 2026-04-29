@@ -45,7 +45,7 @@ def _resolve_business_id(current_admin: User, db: DBSession, business_id: _Optio
 
 
 @router.get("/tds-settings", response_model=TDSSettingResponse)
-def get_tds_settings(db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin), business_id: int = Query(..., description="business_id is required")):
+def get_tds_settings(db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin), business_id: int = Path(...)):
     service = get_tax_service(db)
     bid = _resolve_business_id(current_admin, db, business_id)
     setting = service.get_tds_setting(business_id=bid)
@@ -53,7 +53,7 @@ def get_tds_settings(db: Session = Depends(get_db), current_admin: User = Depend
 
 
 @router.put("/tds-settings", response_model=TDSSettingResponse)
-def update_tds_settings(settings: TDSSettingUpdate, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin), business_id: int = Query(..., description="business_id is required")):
+def update_tds_settings(settings: TDSSettingUpdate, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin), business_id: int = Path(...)):
     service = get_tax_service(db)
     bid = _resolve_business_id(current_admin, db, business_id)
     updated = service.update_tds_setting(settings.deduct_tds, business_id=bid)
@@ -61,7 +61,7 @@ def update_tds_settings(settings: TDSSettingUpdate, db: Session = Depends(get_db
 
 
 @router.get("/financial-years", response_model=List[FinancialYearResponse])
-def get_financial_years(db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin), business_id: int = Query(..., description="business_id is required")):
+def get_financial_years(db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin), business_id: int = Path(...)):
     service = get_tax_service(db)
     bid = _resolve_business_id(current_admin, db, business_id)
     # TaxService.list_financial_years doesn't accept business_id param — call it and filter locally
@@ -116,7 +116,7 @@ def update_financial_year(
     year_data: FinancialYearUpdate,
     db: Session = Depends(get_db),
     admin=Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = Path(...),
 ):
     service = get_tax_service(db)
     bid = _resolve_business_id(admin, db, business_id)
@@ -150,7 +150,7 @@ def update_financial_year(
 
 
 @router.get("/tax-rates", response_model=List[TaxRateResponse])
-def get_tax_rates(financial_year: Optional[str] = "2025-26", db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin), business_id: int = Query(..., description="business_id is required")):
+def get_tax_rates(financial_year: Optional[str] = "2025-26", db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin), business_id: int = Path(...)):
     service = get_tax_service(db)
     bid = _resolve_business_id(current_admin, db, business_id)
     logger.debug("get_tax_rates called: financial_year=%s business_id=%s", financial_year, bid)
@@ -164,7 +164,7 @@ def get_tax_rates(financial_year: Optional[str] = "2025-26", db: Session = Depen
 
 
 @router.get("/tax-rates/years")
-def get_available_tax_years(db: Session = Depends(get_db), admin=Depends(get_current_admin), business_id: int = Query(..., description="business_id is required")):
+def get_available_tax_years(db: Session = Depends(get_db), admin=Depends(get_current_admin), business_id: int = Path(...)):
     service = get_tax_service(db)
     bid = _resolve_business_id(admin, db, business_id)
 
@@ -191,7 +191,7 @@ def get_available_tax_years(db: Session = Depends(get_db), admin=Depends(get_cur
 
 
 @router.post("/initialize-data")
-def initialize_default_data(db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin), business_id: int = Query(..., description="business_id is required")):
+def initialize_default_data(db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin), business_id: int = Path(...)):
     service = get_tax_service(db)
     bid = _resolve_business_id(current_admin, db, business_id)
     return service.initialize_default_data(business_id=bid)
@@ -201,7 +201,7 @@ def initialize_default_data(db: Session = Depends(get_db), current_admin: User =
 def get_salary_components(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required")
+    business_id: int = Path(...)
 ):
     """Get all salary components with their tax category settings"""
     service = get_tax_service(db)
@@ -233,7 +233,7 @@ def update_salary_component_category(
     value: bool = Query(..., description="True to enable, False to disable"),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required")
+    business_id: int = Path(...)
 ):
     """Update a specific tax category for a salary component"""
     service = get_tax_service(db)

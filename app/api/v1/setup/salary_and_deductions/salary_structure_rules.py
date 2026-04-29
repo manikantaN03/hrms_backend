@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Path
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 
 from app.schemas.setup.salary_and_deductions.salary_structure_rule import (
@@ -19,14 +19,14 @@ service = SalaryStructureRuleService()
 
 
 @router.get(
-    "/salary-structure-rules/{business_id}/{structure_id}",
+    "/salary-structure-rules/{structure_id}",
     response_model=list[SalaryStructureRuleResponse],
     summary="List all rules for a salary structure",
     description="Retrieve all allocation rules for a specific salary structure"
 )
 def list_rules(
-    business_id: int,
-    structure_id: int,
+    structure_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -41,19 +41,20 @@ def list_rules(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID or structure ID"
         )
+    validate_business_access(business_id, current_user, db)
     return service.list(db, structure_id, business_id)
 
 
 @router.post(
-    "/salary-structure-rules/{business_id}",
+    "/salary-structure-rules",
     response_model=SalaryStructureRuleResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create salary structure rule",
     description="Create a new allocation rule for a salary structure"
 )
 def create_rule(
-    business_id: int,
     data: SalaryStructureRuleCreate,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -72,19 +73,20 @@ def create_rule(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID"
         )
+    validate_business_access(business_id, current_user, db)
     return service.create(db, data, business_id)
 
 
 @router.put(
-    "/salary-structure-rules/{business_id}/{rule_id}",
+    "/salary-structure-rules/{rule_id}",
     response_model=SalaryStructureRuleResponse,
     summary="Update salary structure rule",
     description="Update an existing allocation rule"
 )
 def update_rule(
-    business_id: int,
-    rule_id: int,
-    data: SalaryStructureRuleUpdate,
+    rule_id: int = Path(...),
+    business_id: int = Path(...),
+    data: SalaryStructureRuleUpdate = ...,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -101,18 +103,19 @@ def update_rule(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID or rule ID"
         )
+    validate_business_access(business_id, current_user, db)
     return service.update(db, rule_id, business_id, data)
 
 
 @router.delete(
-    "/salary-structure-rules/{business_id}/{rule_id}",
+    "/salary-structure-rules/{rule_id}",
     status_code=status.HTTP_200_OK,
     summary="Delete salary structure rule",
     description="Delete an allocation rule from a salary structure"
 )
 def delete_rule(
-    business_id: int,
-    rule_id: int,
+    rule_id: int = Path(...),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -127,6 +130,7 @@ def delete_rule(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid business ID or rule ID"
         )
+    validate_business_access(business_id, current_user, db)
     service.delete(db, rule_id, business_id)
     return {"message": "Salary structure rule deleted successfully"}
 

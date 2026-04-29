@@ -1,9 +1,9 @@
 {
   "app_start_time": 1770173053.6929693,
-  "api_calls_today": 19,
-  "api_calls_total": 27070,
+  "api_calls_today": 23,
+  "api_calls_total": 27093,
   "data_processed_mb": 0.0,
-  "last_reset_date": "2026-04-28",
+  "last_reset_date": "2026-04-29",
   "security_events": {
     "failed_logins": 1,
     "successful_logins": 2,

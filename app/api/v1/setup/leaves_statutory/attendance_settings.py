@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Path, Body
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import Optional
@@ -33,11 +33,10 @@ def root():
     description="Retrieve all attendance settings for user's business"
 )
 def get_all_settings(
-    business_id: Optional[int] = Query(None, description="Business ID (ignored - uses user's business)"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return (1-1000)"),
     db: Session = Depends(get_db),
-    current_admin: User = Depends(get_current_admin)
+    current_admin: User = Depends(get_current_admin),
 ):
     """
     Get all attendance settings for user's business.
@@ -65,13 +64,13 @@ def get_all_settings(
 
 
 @router.get(
-    "/{business_id}", 
+    "/", 
     response_model=AttendanceSettingsResponse,
     summary="Get attendance settings",
     description="Retrieve attendance settings for user's business"
 )
 def get_settings(
-    business_id: int,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):
@@ -104,14 +103,14 @@ def get_settings(
 
 
 @router.put(
-    "/{business_id}", 
+    "/", 
     response_model=AttendanceSettingsResponse,
     summary="Update attendance settings",
     description="Update attendance settings for user's business"
 )
 def update_settings(
-    business_id: int,
-    data: AttendanceSettingsUpdate,
+    business_id: int = Path(...),
+    data: AttendanceSettingsUpdate = Body(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):
@@ -150,13 +149,13 @@ def update_settings(
 
 
 @router.post(
-    "/{business_id}/reset", 
+    "/reset", 
     response_model=AttendanceSettingsResponse,
     summary="Reset attendance settings",
     description="Reset attendance settings to default values for user's business"
 )
 def reset_settings(
-    business_id: int,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):

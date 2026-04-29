@@ -3,7 +3,7 @@ Professional Tax Endpoints
 API routes for Professional Tax configuration
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Path, Query
 from sqlalchemy.orm import Session
 from typing import List
 import logging
@@ -35,7 +35,7 @@ router = APIRouter()
     summary="Get Professional Tax Settings"
 )
 def get_professional_tax_settings(
-    business_id: int,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):

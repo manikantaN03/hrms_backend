@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Query, Path
 from sqlalchemy.orm import Session
 from typing import List
 import re
@@ -70,7 +70,7 @@ def create_tds_record(
 
 
 @router.get("", response_model=List[dict])
-def get_all_tds_records(skip: int = 0, limit: int = 100, business_id: int = Query(..., description="business_id is required"), db: Session = Depends(get_db)):
+def get_all_tds_records(skip: int = 0, limit: int = 100, business_id: int = Path(...), db: Session = Depends(get_db)):
     """Get all TDS 24Q records for a business with pagination"""
     result = repo.get_all_tds24q(db, skip, limit)
     # filter by business_id to ensure only requested business records returned
@@ -78,7 +78,7 @@ def get_all_tds_records(skip: int = 0, limit: int = 100, business_id: int = Quer
 
 
 @router.get("/{record_id}", response_model=dict)
-def get_tds_record(record_id: int, business_id: int = Query(..., description="business_id is required"), db: Session = Depends(get_db)):
+def get_tds_record(record_id: int, business_id: int = Path(...), db: Session = Depends(get_db)):
     """Get a specific TDS 24Q record by ID (must belong to business_id)"""
     result = repo.get_tds24q(db, record_id)
     if not result:
@@ -92,7 +92,7 @@ def get_tds_record(record_id: int, business_id: int = Query(..., description="bu
 def update_tds_record(
     record_id: int,
     tds_data: TDS24QUpdate,
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin),
 ):
@@ -113,7 +113,7 @@ def update_tds_record(
 
 
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_tds_record(record_id: int, business_id: int = Query(..., description="business_id is required"), db: Session = Depends(get_db)):
+def delete_tds_record(record_id: int, business_id: int = Path(...), db: Session = Depends(get_db)):
     """Delete a TDS 24Q record by id (must belong to business_id)."""
     existing = repo.get_tds24q(db, record_id)
     if not existing:

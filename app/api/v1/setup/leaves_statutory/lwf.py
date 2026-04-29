@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Path, Body
 
 from sqlalchemy.orm import Session
  
@@ -32,7 +32,7 @@ service = LWFService()
     summary="Get LWF settings"
 )
 def get_lwf_settings(
-    business_id: int,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -49,8 +49,8 @@ def get_lwf_settings(
     summary="Update LWF settings"
 )
 def update_lwf_settings(
-    business_id: int,
-    data: LWFSettingsUpdate,
+    business_id: int = Path(...),
+    data: LWFSettingsUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -64,23 +64,14 @@ def update_lwf_settings(
 # -------------------------------------------------
 
 @router.get(
-
-    "/components/{business_id}",
-
+    "/components",
     summary="Get LWF applicable salary components"
-
 )
-
 def get_lwf_components(
-
-    business_id: int,
-
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
-
     current_user: User = Depends(get_current_admin),
-
 ):
-
     return service.get_lwf_components(db, business_id)
  
  
@@ -100,9 +91,8 @@ def get_lwf_components(
 
 def toggle_lwf_component(
 
-    component_id: int,
-
-    data: LWFComponentToggle,
+    component_id: int = Path(...),
+    data: LWFComponentToggle = Body(...),
 
     db: Session = Depends(get_db),
 

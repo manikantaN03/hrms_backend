@@ -5,7 +5,7 @@ from typing import List, Optional, Any, Annotated
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query, Path as PathParam
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -151,7 +151,7 @@ async def create_person_responsible(
     designation: str = Form(...),
     fatherName: str = Form(...),
     file: UploadFile = File(...),
-    business_id: int = Form(...),  # REQUIRED in payload
+    business_id: int = PathParam(...),
     db: Session = Depends(get_db),
     current_admin = Depends(get_current_admin),
 ):
@@ -181,7 +181,7 @@ async def create_person_responsible(
 
 
 @router.get("/person", response_model=List[PersonResponsibleResponse])
-def get_all_person_responsible(skip: int = 0, limit: int = 100, business_id: int = Query(..., description="business_id is required"), db: Session = Depends(get_db)):
+def get_all_person_responsible(skip: int = 0, limit: int = 100, business_id: int = PathParam(...), db: Session = Depends(get_db)):
     if not MODELS_AVAILABLE:
         raise HTTPException(status_code=500, detail="Form16 models/schemas not available")
 
@@ -193,7 +193,7 @@ def get_all_person_responsible(skip: int = 0, limit: int = 100, business_id: int
 
 
 @router.get("/person/{record_id}", response_model=PersonResponsibleResponse)
-def get_person_responsible(record_id: int, business_id: int = Query(..., description="business_id is required"), db: Session = Depends(get_db)):
+def get_person_responsible(record_id: int, business_id: int = PathParam(...), db: Session = Depends(get_db)):
     if not MODELS_AVAILABLE:
         raise HTTPException(status_code=500, detail="Form16 models/schemas not available")
 
@@ -212,7 +212,7 @@ async def update_person_responsible(
     designation: str = Form(...),
     fatherName: str = Form(...),
     file: UploadFile = File(None),  # Make file optional for updates
-    business_id: int = Form(...),  # REQUIRED
+    business_id: int = PathParam(...),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin),
 ):
@@ -263,7 +263,7 @@ async def update_person_responsible(
 @router.delete("/person/{record_id}")
 def delete_person_responsible(
     record_id: int,
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = PathParam(...),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin),
 ):
@@ -302,7 +302,7 @@ def create_employer_info(
     employer_data: EmployerInfoCreate,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = PathParam(...),
 ):
     if not MODELS_AVAILABLE:
         raise HTTPException(status_code=500, detail="Form16 models/schemas not available")
@@ -342,7 +342,7 @@ def create_employer_info(
 def get_all_employer_info(
     skip: int = 0,
     limit: int = 100,
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = PathParam(...),
     db: Session = Depends(get_db),
 ):
     if not MODELS_AVAILABLE:
@@ -356,7 +356,7 @@ def get_all_employer_info(
 
 
 @router.get("/employer/{record_id}", response_model=EmployerInfoResponse)
-def get_employer_info(record_id: int, business_id: int = Query(..., description="business_id is required"), db: Session = Depends(get_db)):
+def get_employer_info(record_id: int, business_id: int = PathParam(...), db: Session = Depends(get_db)):
     if not MODELS_AVAILABLE:
         raise HTTPException(status_code=500, detail="Form16 models/schemas not available")
 
@@ -376,7 +376,7 @@ def update_employer_info(
     employer_data: EmployerInfoCreate,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = PathParam(...),
 ):
     if not MODELS_AVAILABLE:
         raise HTTPException(status_code=500, detail="Form16 models/schemas not available")
@@ -411,7 +411,7 @@ def update_employer_info(
 @router.delete("/employer/{record_id}")
 def delete_employer_info(
     record_id: int,
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = PathParam(...),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin),
 ):
@@ -482,7 +482,7 @@ def create_cit_info(
 def get_all_cit_info(
     skip: int = 0,
     limit: int = 100,
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = PathParam(...),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin),
 ):
@@ -515,7 +515,7 @@ def get_cit_info(
     record_id: int,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = PathParam(...),
 ):
     if not MODELS_AVAILABLE:
         raise HTTPException(status_code=500, detail="Form16 models/schemas not available")
@@ -546,7 +546,7 @@ def update_cit_info(
     cit_data: CITInfoCreate,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = PathParam(...),
 ):
     if not MODELS_AVAILABLE:
         raise HTTPException(status_code=500, detail="Form16 models/schemas not available")
@@ -590,7 +590,7 @@ def delete_cit_info(
     record_id: int,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin),
-    business_id: int = Query(..., description="business_id is required"),
+    business_id: int = PathParam(...),
 ):
     if not MODELS_AVAILABLE:
         raise HTTPException(status_code=500, detail="Form16 models/schemas not available")
