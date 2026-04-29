@@ -9,7 +9,6 @@ from app.schemas.setup.salary_and_deductions.salary_structure_rule import (
 # ---------------- SALARY STRUCTURE SCHEMAS ----------------
 
 class SalaryStructureCreate(BaseModel):
-    business_id: int = Field(..., gt=0, description="Business ID")
     name: str = Field(..., min_length=1, max_length=120, description="Structure name")
     rules: List[SalaryStructureRuleCreate] = Field(default=[], description="Allocation rules")
 

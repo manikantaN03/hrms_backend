@@ -46,13 +46,14 @@ def list_structures(
 
 # ✅ Create structure (business_id comes from payload)
 @router.post(
-    "/",
+    "/{business_id}",
     response_model=SalaryStructureResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create salary structure",
     description="Create a new salary structure with allocation rules"
 )
 def create_structure(
+    business_id: int,
     data: SalaryStructureCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
@@ -65,7 +66,9 @@ def create_structure(
     - **name**: Name of the salary structure
     - **rules**: List of allocation rules (optional)
     """
-    return service.create(db, data)
+    if business_id <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid business ID")
+    return service.create(db, business_id, data)
 
 
 # ✅ Get a single structure (business scoped)

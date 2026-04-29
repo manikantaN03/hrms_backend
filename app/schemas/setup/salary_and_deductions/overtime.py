@@ -7,7 +7,6 @@ from typing import Optional
 # ======================================================================
 
 class OvertimePolicyCreate(BaseModel):
-    business_id: int = Field(..., gt=0, description="Business ID must be positive")
     policy_name: str = Field(..., min_length=1, max_length=255, description="Policy name (1-255 characters)")
     
     @field_validator('policy_name')
@@ -47,7 +46,6 @@ class OvertimePolicyOut(BaseModel):
 # ======================================================================
 
 class OvertimeRuleCreate(BaseModel):
-    business_id: int = Field(..., gt=0, description="Business ID must be positive")
     policy_id: int = Field(..., gt=0, description="Policy ID must be positive")
     attendance_type: str = Field(..., min_length=1, max_length=50, description="Attendance type (e.g., Present, Absent, Half Day)")
     time_basis: str = Field(..., min_length=1, max_length=50, description="Time basis (e.g., Early Coming, Late Going, Daily, Weekly)")

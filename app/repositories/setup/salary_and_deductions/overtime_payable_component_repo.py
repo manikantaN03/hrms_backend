@@ -27,8 +27,13 @@ class OvertimePayableComponentRepository:
             .first()
         )
 
-    def create(self, db: Session, data):
-        obj = OvertimePolicyPayableComponent(**data.dict())
+    def create(self, db: Session, business_id: int, policy_id: int, component_id: int, is_payable: bool):
+        obj = OvertimePolicyPayableComponent(
+            business_id=business_id,
+            policy_id=policy_id,
+            component_id=component_id,
+            is_payable=is_payable,
+        )
         db.add(obj)
         db.commit()
         db.refresh(obj)
@@ -56,12 +61,5 @@ class OvertimePayableComponentRepository:
             db.refresh(existing)
             return existing
         else:
-            # Create new entry
-            from app.schemas.setup.salary_and_deductions.overtime_payable_component import OvertimePayableComponentCreate
-            data = OvertimePayableComponentCreate(
-                business_id=business_id,
-                policy_id=policy_id,
-                component_id=component_id,
-                is_payable=is_payable
-            )
-            return self.create(db, data)
+            # Create new entry by injecting path params
+            return self.create(db, business_id, policy_id, component_id, is_payable)

@@ -49,13 +49,15 @@ def list_rules(
 
 
 @router.post(
-    "/",
+    "/{business_id}/{component_id}",
     response_model=TimeRuleResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new time salary rule",
     description="Create a new time salary rule with attendance, shift, and timing configurations"
 )
 def create_rule(
+    business_id: int,
+    component_id: int,
     data: TimeRuleCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
@@ -79,7 +81,11 @@ def create_rule(
     Returns the created time salary rule with ID and timestamps
     """
     try:
-        return service.create(db, data)
+        if business_id <= 0:
+            raise HTTPException(status_code=400, detail="Business ID must be positive")
+        if component_id <= 0:
+            raise HTTPException(status_code=400, detail="Component ID must be positive")
+        return service.create(db, business_id, component_id, data)
     except IntegrityError as e:
         raise HTTPException(
             status_code=400,

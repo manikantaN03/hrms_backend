@@ -19,13 +19,13 @@ class SalaryComponentRepository:
             .first()
         )
 
-    def create(self, db: Session, data: SalaryComponentCreate):
+    def create(self, db: Session, business_id: int, data: SalaryComponentCreate):
         # Normalize enum -> store the enum value (string) in the model
         unit_type_value = data.unit_type.value if hasattr(data.unit_type, "value") else data.unit_type
         component_type_value = data.component_type.value if hasattr(data, "component_type") and hasattr(data.component_type, "value") else getattr(data, "component_type", None)
 
         obj = SalaryComponent(
-            business_id=data.business_id,
+            business_id=business_id,
             name=data.name,
             alias=data.alias,
             component_type=component_type_value,

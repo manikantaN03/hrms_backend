@@ -33,7 +33,7 @@ class SalaryComponentBase(BaseModel):
 
 # ---------- CREATE ----------
 class SalaryComponentCreate(SalaryComponentBase):
-    business_id: int = Field(..., gt=0, description="Business ID")
+    pass
 
 
 # ---------- UPDATE ----------

@@ -58,13 +58,14 @@ def list_policies(
 
 
 @router.post(
-    "/policies/", 
+    "/policies/{business_id}", 
     response_model=OvertimePolicyOut, 
     status_code=status.HTTP_201_CREATED,
     summary="Create a new overtime policy",
     description="Create a new overtime policy with a unique name"
 )
 def create_policy(
+    business_id: int,
     data: OvertimePolicyCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
@@ -79,7 +80,9 @@ def create_policy(
     Returns the created overtime policy with ID and timestamps
     """
     try:
-        return policy_service.create(db, data)
+        if business_id <= 0:
+            raise HTTPException(status_code=400, detail="Business ID must be positive")
+        return policy_service.create_with_business(db, business_id, data)
     except IntegrityError as e:
         if 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
             raise HTTPException(
@@ -205,13 +208,15 @@ def list_rules(
 
 
 @router.post(
-    "/rules/", 
+    "/rules/{business_id}/{policy_id}", 
     response_model=OvertimeRuleOut, 
     status_code=status.HTTP_201_CREATED,
     summary="Create a new overtime rule",
     description="Create a new overtime rule with attendance, time, and calculation configurations"
 )
 def create_rule(
+    business_id: int,
+    policy_id: int,
     data: OvertimeRuleCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
@@ -236,7 +241,11 @@ def create_rule(
     Returns the created overtime rule with ID and timestamps
     """
     try:
-        return rule_service.create(db, data)
+        if business_id <= 0:
+            raise HTTPException(status_code=400, detail="Business ID must be positive")
+        if policy_id <= 0:
+            raise HTTPException(status_code=400, detail="Policy ID must be positive")
+        return rule_service.create(db, business_id, policy_id, data)
     except HTTPException:
         raise
     except IntegrityError as e:

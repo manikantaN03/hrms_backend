@@ -32,19 +32,9 @@ class APIAccessCreate(CamelModel):
         alias="apiEnabled",
         description="Whether to enable API access"
     )
-    business_id: int = Field(
-        gt=0,
-        alias="businessId",
-        description="Business ID to create API access for"
-    )
+    # business_id removed from body; supplied via path parameter
     
-    @field_validator('business_id')
-    @classmethod
-    def validate_business_id(cls, v: int) -> int:
-        """Validate business_id is positive"""
-        if v <= 0:
-            raise ValueError("business_id must be a positive integer")
-        return v
+    pass
 
 
 class APIAccessUpdate(CamelModel):

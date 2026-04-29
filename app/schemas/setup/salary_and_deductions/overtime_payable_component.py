@@ -3,7 +3,6 @@ from typing import Optional
 
 
 class OvertimePayableComponentCreate(BaseModel):
-    business_id: int
     policy_id: int
     component_id: int
     is_payable: bool = True

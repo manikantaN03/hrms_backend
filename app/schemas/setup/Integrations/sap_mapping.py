@@ -450,8 +450,8 @@ class SAPMappingBase(CamelModel):
 
 
 class SAPMappingCreate(SAPMappingBase):
-    # can be omitted if you always use path param for business_id
-    business_id: Optional[int] = Field(alias="businessId", default=None)
+    # business_id supplied via path parameter; remove from create payload
+    pass
 
 
 class SAPMappingUpdate(SAPMappingBase):

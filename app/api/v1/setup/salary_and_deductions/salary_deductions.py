@@ -46,13 +46,14 @@ def list_deductions(
 
 # 🚀 CREATE (Business Scoped)
 @router.post(
-    "/",
+    "/{business_id}",
     response_model=SalaryDeductionResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create salary deduction",
     description="Create a new salary deduction type for a business"
 )
 def create_deduction(
+    business_id: int,
     data: SalaryDeductionCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
@@ -66,7 +67,9 @@ def create_deduction(
     - **code**: Short code/alias for the deduction
     - **type**: Type of deduction (Fixed/Variable)
     """
-    return service.create(db, data)
+    if business_id <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid business ID")
+    return service.create(db, business_id, data)
 
 
 # 🚀 GET (Business Scoped)

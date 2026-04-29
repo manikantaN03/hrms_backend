@@ -114,10 +114,15 @@ api_router.include_router(
 # 15. Setup
 # ============================================================================
 
+
+# ============================================================================
+# Business-specific Setup routes (allow paths like /api/v1/{business_id}/setup/...)
+# ============================================================================
 api_router.include_router(
     setup_dashboard.router,
-    prefix="/setup",
-    tags=["Setup"]
+    prefix="/{business_id}/setup",
+    tags=["Setup"],
+    dependencies=[Depends(get_current_admin)],
 )
 
 api_router.include_router(

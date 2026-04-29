@@ -26,8 +26,10 @@ class SalaryDeductionRepository:
             .first()
         )
 
-    def create(self, db: Session, data: SalaryDeductionCreate):
-        obj = SalaryDeduction(**data.dict())
+    def create(self, db: Session, business_id: int, data: SalaryDeductionCreate):
+        obj_data = data.dict()
+        obj_data['business_id'] = business_id
+        obj = SalaryDeduction(**obj_data)
         db.add(obj)
         db.commit()
         db.refresh(obj)

@@ -57,18 +57,18 @@ class SalaryStructureService:
             )
         return obj
 
-    def create(self, db: Session, data: SalaryStructureCreate):
-        """Create a new salary structure"""
+    def create(self, db: Session, business_id: int, data: SalaryStructureCreate):
+        """Create a new salary structure for given business_id"""
         # Ensure the referenced business exists
-        business = db.query(Business).filter(Business.id == data.business_id).first()
+        business = db.query(Business).filter(Business.id == business_id).first()
         if not business:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Business does not exist"
             )
-        
+
         # Check if structure name already exists for this business
-        exists = self.repo.exists(db, data.name, data.business_id)
+        exists = self.repo.exists(db, data.name, business_id)
         if exists:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -76,7 +76,7 @@ class SalaryStructureService:
             )
 
         try:
-            return self.repo.create(db, data)
+            return self.repo.create(db, business_id, data)
         except IntegrityError as e:
             db.rollback()
             raise HTTPException(

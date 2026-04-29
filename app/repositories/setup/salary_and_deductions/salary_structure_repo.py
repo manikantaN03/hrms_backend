@@ -41,11 +41,11 @@ class SalaryStructureRepository:
             query = query.filter(SalaryStructure.business_id == business_id)
         return query.first()
 
-    def create(self, db: Session, data: SalaryStructureCreate):
+    def create(self, db: Session, business_id: int, data: SalaryStructureCreate):
         # Create the structure and persist rules in the same transaction
         obj = SalaryStructure(
             name=data.name,
-            business_id=data.business_id,
+            business_id=business_id,
         )
         db.add(obj)
 
@@ -56,7 +56,7 @@ class SalaryStructureRepository:
         rules = getattr(data, "rules", None) or []
         for r in rules:
             rule_obj = SalaryStructureRule(
-                business_id=data.business_id,
+                business_id=business_id,
                 structure_id=obj.id,
                 component_id=r.component_id,
                 calculation_type=r.calculation_type,

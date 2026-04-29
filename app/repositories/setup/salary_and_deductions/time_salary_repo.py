@@ -18,8 +18,11 @@ class TimeSalaryRuleRepository:
             TimeSalaryRule.component_id == component_id
         ).all()
 
-    def create(self, db: Session, data: TimeRuleCreate):
-        obj = TimeSalaryRule(**data.dict())
+    def create(self, db: Session, business_id: int, component_id: int, data: TimeRuleCreate):
+        obj_data = data.dict()
+        obj_data['business_id'] = business_id
+        obj_data['component_id'] = component_id
+        obj = TimeSalaryRule(**obj_data)
         db.add(obj)
         db.commit()
         db.refresh(obj)

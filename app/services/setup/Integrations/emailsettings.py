@@ -44,14 +44,14 @@ def list_mailboxes_service(
 # MAILBOX CRUD
 # =========================================================
 
-def create_mailbox_service(db: Session, payload: EmailMailboxCreate) -> EmailMailbox:
+def create_mailbox_service(db: Session, business_id: int, payload: EmailMailboxCreate) -> EmailMailbox:
     if repo.get_mailbox_by_email(db, payload.email_address):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Mailbox already exists for this email",
         )
 
-    business = db.query(Business).filter(Business.id == payload.business_id).first()
+    business = db.query(Business).filter(Business.id == business_id).first()
     if not business:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -62,7 +62,7 @@ def create_mailbox_service(db: Session, payload: EmailMailboxCreate) -> EmailMai
         db,
         display_name=payload.display_name,
         email_address=payload.email_address,
-        business_id=payload.business_id,
+        business_id=business_id,
         tenant_id=payload.tenant_id,
     )
 

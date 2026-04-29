@@ -67,16 +67,17 @@ def get_email_settings(
 # MAILBOX CRUD
 # =====================================================
 @router.post(
-    "/mailbox",
+    "/{business_id}/mailbox",
     response_model=EmailMailboxOut,
     status_code=status.HTTP_201_CREATED,
 )
 def create_mailbox(
+    business_id: int,
     payload: EmailMailboxCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
-    return svc.create_mailbox_service(db, payload)
+    return svc.create_mailbox_service(db, business_id, payload)
 
 
 @router.get(

@@ -76,13 +76,14 @@ def get_component(
 # CREATE COMPONENT (BUSINESS-SCOPED)
 # ---------------------------------------------------------
 @router.post(
-    "/",
+    "/{business_id}",
     response_model=SalaryComponentOut,
     status_code=status.HTTP_201_CREATED,
     summary="Create salary component",
     description="Create a new salary component for a business"
 )
 def create_component(
+    business_id: int,
     data: SalaryComponentCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
@@ -97,7 +98,9 @@ def create_component(
     - **component_type**: Type of component (Fixed/Variable/Deduction)
     - **unit_type**: Calculation unit (Paid Days/Casual Days)
     """
-    return service.create(db, data)
+    if business_id <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid business ID")
+    return service.create(db, business_id, data)
 
 
 # ---------------------------------------------------------

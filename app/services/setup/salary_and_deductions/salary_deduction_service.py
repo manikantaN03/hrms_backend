@@ -40,26 +40,26 @@ class SalaryDeductionService:
         return obj
 
     # 🔥 Create deduction for a business
-    def create(self, db: Session, data: SalaryDeductionCreate):
-        """Create a new salary deduction"""
+    def create(self, db: Session, business_id: int, data: SalaryDeductionCreate):
+        """Create a new salary deduction for given business_id"""
         # Ensure the referenced business exists
-        business = db.query(Business).filter(Business.id == data.business_id).first()
+        business = db.query(Business).filter(Business.id == business_id).first()
         if not business:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Business does not exist"
             )
-        
+
         # Validate duplicate code only inside the same business
-        exists = self.repo.exists(db, data.business_id, data.code)
+        exists = self.repo.exists(db, business_id, data.code)
         if exists:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Code '{data.code}' already exists for this business"
             )
-        
+
         try:
-            return self.repo.create(db, data)
+            return self.repo.create(db, business_id, data)
         except IntegrityError as e:
             db.rollback()
             raise HTTPException(

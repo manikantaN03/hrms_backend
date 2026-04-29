@@ -17,9 +17,9 @@ class TimeSalaryRuleService:
         else:
             return self.repo.list(db, business_id)
 
-    def create(self, db: Session, data: TimeRuleCreate):
-        """Create rule — data already contains business_id + component_id."""
-        return self.repo.create(db, data)
+    def create(self, db: Session, business_id: int, component_id: int, data: TimeRuleCreate):
+        """Create rule using path-provided business_id and component_id"""
+        return self.repo.create(db, business_id, component_id, data)
 
     def update(self, db: Session, rule_id: int, business_id: int, data: TimeRuleUpdate):
         """Update only if rule belongs to the same business."""

@@ -29,7 +29,7 @@ class EmailMailboxCreate(CamelModel):
     display_name: str = Field(..., alias="displayName", min_length=1, max_length=255, description="Display name for the mailbox")
     email_address: EmailStr = Field(..., alias="emailAddress", description="Email address for the mailbox")
     tenant_id: Optional[int] = Field(default=None, alias="tenantId", gt=0, description="Tenant ID (optional)")
-    business_id: int = Field(..., alias="businessId", gt=0, description="Business ID")
+    # business_id is provided via path parameter; not part of request body
 
     @field_validator('display_name')
     @classmethod

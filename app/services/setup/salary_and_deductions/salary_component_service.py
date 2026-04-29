@@ -50,21 +50,21 @@ class SalaryComponentService:
         return component
 
     # 🔹 Create new component (business_id inside payload)
-    def create(self, db: Session, data: SalaryComponentCreate):
-        """Create a new salary component"""
+    def create(self, db: Session, business_id: int, data: SalaryComponentCreate):
+        """Create a new salary component using path-provided business_id"""
         # Ensure the referenced business exists
-        business = db.query(Business).filter(Business.id == data.business_id).first()
+        business = db.query(Business).filter(Business.id == business_id).first()
         if not business:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Business does not exist"
             )
-        
+
         # Business-scoped alias uniqueness check
         existing = self.repo.check_exists(
             db,
             alias=data.alias,
-            business_id=data.business_id
+            business_id=business_id
         )
 
         if existing:
@@ -74,7 +74,7 @@ class SalaryComponentService:
             )
 
         try:
-            return self.repo.create(db, data)
+            return self.repo.create(db, business_id, data)
         except IntegrityError as e:
             db.rollback()
             raise HTTPException(

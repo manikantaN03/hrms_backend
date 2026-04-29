@@ -3,7 +3,6 @@ from datetime import time, datetime
 
 
 class TimeRuleBase(BaseModel):
-    business_id: int = Field(..., gt=0, description="Business ID must be positive")
     component_id: int = Field(..., gt=0, description="Component ID must be positive")
     attendance: str = Field(..., min_length=1, max_length=50, description="Attendance type (e.g., Present, Half Day)")
     shift: str = Field(..., min_length=1, max_length=50, description="Shift name (e.g., Regular Shift, Night Shift)")
@@ -53,6 +52,7 @@ class TimeRuleUpdate(BaseModel):
 
 class TimeRuleResponse(TimeRuleBase):
     id: int
+    business_id: int
     created_at: datetime
     updated_at: datetime
 

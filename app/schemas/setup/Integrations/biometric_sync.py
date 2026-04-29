@@ -32,11 +32,7 @@ class BiometricDeviceCreate(CamelModel):
         max_length=200,
         description="Device name (e.g., 'Main Gate Biometric')"
     )
-    business_id: int = Field(
-        alias="businessId",
-        gt=0,
-        description="Business ID to which this device belongs"
-    )
+    # business_id provided via path parameter; not part of request body
     tenant_id: Optional[int] = Field(
         default=None,
         alias="tenantId",

@@ -21,7 +21,7 @@ class SalaryDeductionBase(BaseModel):
 
 class SalaryDeductionCreate(SalaryDeductionBase):
     """Used for creating a salary deduction."""
-    business_id: int = Field(..., gt=0, description="Business ID")
+    pass
 
 
 class SalaryDeductionUpdate(BaseModel):
