@@ -17,11 +17,18 @@ router = APIRouter()
 
 
 @router.get("/", summary="API root for Leave Policies")
-def root():
+def root(
+    business_id: int = Path(...),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    # Validate business access and return a simple API root object
+    validate_business_access(business_id, current_admin, db)
     return {
         "message": "Leave Policies API",
         "version": "1.0.0",
         "docs": "/api/docs",
+        "business_id": business_id,
     }
 
 

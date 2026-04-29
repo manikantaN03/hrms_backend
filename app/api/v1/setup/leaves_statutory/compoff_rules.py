@@ -13,7 +13,7 @@ from app.services.compoff_rule_service import (
     reset_rules,
 )
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 
 router = APIRouter()
@@ -30,18 +30,11 @@ def create_comp_off_rule(
     current_admin: User = Depends(get_current_admin),
 ):
     """Create a new Comp Off rule for a business. Admin must own the business."""
-    biz_id = getattr(data, "business_id", None)
-    if not biz_id:
-        if not current_admin.businesses:
-            raise HTTPException(status_code=400, detail="No businesses found for this admin")
-        biz_id = current_admin.businesses[0].id
-
-    # verify ownership
-    if not any(b.id == biz_id for b in current_admin.businesses):
-        raise HTTPException(status_code=403, detail="You don't have access to this business")
+    # Validate access for the provided business_id path parameter
+    validate_business_access(business_id, current_admin, db)
 
     payload = data.dict()
-    payload["business_id"] = biz_id
+    payload["business_id"] = business_id
     return create_rule(db, payload)
 
 

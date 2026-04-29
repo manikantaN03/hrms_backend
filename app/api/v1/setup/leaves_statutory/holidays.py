@@ -6,7 +6,7 @@ from app.schemas.holiday import *
 from app.services.holiday_service import HolidayService, holiday_to_response, SettingService
 from app.models.holiday import Holiday, Setting
 from app.models.location import Location
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 
 router = APIRouter()
@@ -14,18 +14,10 @@ router = APIRouter()
 
 @router.post("", response_model=HolidayResponse, status_code=201)
 def create_holiday(data: HolidayCreate, business_id: int = Path(...), db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
-    # determine business_id: prefer payload, otherwise use first admin business
-    biz_id = getattr(data, "business_id", None)
-    if not biz_id:
-        if not current_admin.businesses:
-            raise HTTPException(status_code=400, detail="No businesses found for this admin")
-        biz_id = current_admin.businesses[0].id
+    # Validate that current user has access to the requested business
+    validate_business_access(business_id, current_admin, db)
 
-    # verify ownership
-    if not any(b.id == biz_id for b in current_admin.businesses):
-        raise HTTPException(status_code=403, detail="You don't have access to this business")
-
-    return HolidayService.create_holiday(db, data, biz_id)
+    return HolidayService.create_holiday(db, data, business_id)
 
 
 @router.get("", response_model=list[HolidayResponse])

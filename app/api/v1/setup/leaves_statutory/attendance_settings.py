@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from typing import Optional
 
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin, get_user_business_id
+from app.api.v1.deps import get_current_admin, get_user_business_id, validate_business_access
 from app.models.user import User
 from app.schemas.attendance_settings import AttendanceSettingsUpdate, AttendanceSettingsResponse
 from app.services.attendance_settings import AttendanceSettingsService
@@ -35,6 +35,7 @@ def root():
 def get_all_settings(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return (1-1000)"),
+    business_id: int = Path(..., description="Business ID"),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -47,16 +48,16 @@ def get_all_settings(
     """
     from app.models.attendance_settings import AttendanceSettings
     
-    # Get user's business ID (works for owners and employees)
-    # This may raise HTTPException(403) if user has no business access
-    user_business_id = get_user_business_id(current_admin, db)
-    
+    if business_id <= 0:
+        raise HTTPException(status_code=400, detail="Business ID must be positive")
+
+    # Validate that the current user has access to the requested business
+    validate_business_access(business_id, current_admin, db)
+
     try:
-        # Always filter by user's business
         query = db.query(AttendanceSettings).filter(
-            AttendanceSettings.business_id == user_business_id
+            AttendanceSettings.business_id == business_id
         )
-        
         settings = query.order_by(AttendanceSettings.created_at.desc()).offset(skip).limit(limit).all()
         return settings
     except Exception as e:

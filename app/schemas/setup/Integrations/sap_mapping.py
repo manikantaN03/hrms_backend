@@ -455,7 +455,8 @@ class SAPMappingCreate(SAPMappingBase):
 
 
 class SAPMappingUpdate(SAPMappingBase):
-    business_id: Optional[int] = Field(alias="businessId", default=None)
+    # business_id is provided via the route path; do not allow in update payload
+    pass
 
 
 class SAPMappingResponse(SAPMappingBase):

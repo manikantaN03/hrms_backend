@@ -8,7 +8,7 @@ class StrikeAdjustmentBase(BaseModel):
     strike_range_from: int = Field(..., alias="strikeRangeFrom", ge=0, description="Strike range start (inclusive)")
     strike_range_to: int = Field(..., alias="strikeRangeTo", ge=0, description="Strike range end (inclusive)")
     action: str = Field(..., description="Action: Send Warning Only or Update Attendance")
-    business_id: int = Field(..., description="Business ID")
+    # business_id removed from request payloads; provided via path parameter
 
     @field_validator("strike_type")
     @classmethod

@@ -18,7 +18,11 @@ def get_strike_rules(db: Session, rule_type: str = None, business_id: int = None
 
 
 def create_strike_rule(db: Session, rule: StrikeRuleCreate):
-    data = rule.dict()
+    # Accept either a Pydantic model or a dict payload
+    if isinstance(rule, dict):
+        data = rule
+    else:
+        data = rule.dict()
     # ensure business_id provided
     if not data.get("business_id"):
         raise ValueError("business_id is required")

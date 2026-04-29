@@ -18,17 +18,11 @@ def create_leave_type(
     current_admin: User = Depends(get_current_admin)
 ):
     """Create a leave type for a business. Admin must own the business."""
-    biz_id = getattr(payload, "business_id", None)
-    if not biz_id:
-        if not current_admin.businesses:
-            raise HTTPException(status_code=400, detail="No businesses found for this admin")
-        biz_id = current_admin.businesses[0].id
-
     # Verify admin owns this business
-    if not any(b.id == biz_id for b in current_admin.businesses):
+    if not any(b.id == business_id for b in current_admin.businesses):
         raise HTTPException(status_code=403, detail="You don't have access to this business")
 
-    return leave_type_service.create_leave_type(db, payload, biz_id)
+    return leave_type_service.create_leave_type(db, payload, business_id)
 
 @router.get("/", response_model=List[LeaveTypeResponse])
 def get_leave_types(

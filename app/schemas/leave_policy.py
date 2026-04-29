@@ -43,11 +43,11 @@ class LeavePolicyBase(BaseModel):
 
 
 class LeavePolicyCreate(LeavePolicyBase):
-    business_id: Optional[int] = None
+    pass
 
 
 class LeavePolicyUpdate(LeavePolicyBase):
-    business_id: Optional[int] = None
+    pass
 
 
 class LeavePolicyResponse(BaseModel):

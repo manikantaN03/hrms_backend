@@ -10,7 +10,7 @@ class StrikeRuleBase(BaseModel):
     time_adjustment: str = Field(default="No Adjustment", description="Time adjustment type: No Adjustment, Ignore Late/Early, Round")
     round_direction: str = Field(default="next", description="Round direction: next or previous")
     round_minutes: int = Field(default=5, ge=1, le=60, description="Round minutes (1-60)")
-    business_id: int = Field(..., gt=0, description="Business ID")
+    
 
     @field_validator("rule_type")
     @classmethod
@@ -94,5 +94,6 @@ class StrikeRuleUpdate(BaseModel):
 
 class StrikeRuleResponse(StrikeRuleBase):
     id: int
+    business_id: int
 
     model_config = ConfigDict(from_attributes=True)

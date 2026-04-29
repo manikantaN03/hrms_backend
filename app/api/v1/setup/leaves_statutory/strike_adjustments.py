@@ -11,33 +11,27 @@ from app.models.strike_adjustment import StrikeAdjustment
 from app.models.business import Business
 from app.services.strike_service import create_strike, update_strike
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 
 router = APIRouter()
 
 
 @router.post("/", response_model=StrikeAdjustmentResponse, status_code=201)
-def create(adjustment: StrikeAdjustmentCreate, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
-    # Determine business_id (from payload or infer from admin)
-    biz_id = getattr(adjustment, "business_id", None) or adjustment.model_dump().get("business_id")
-    if not biz_id:
-        # infer from admin's first business if available
-        if not getattr(current_admin, "businesses", None):
-            raise HTTPException(status_code=400, detail="business_id is required")
-        biz_id = current_admin.businesses[0].id
+def create(
+    adjustment: StrikeAdjustmentCreate,
+    business_id: int = Path(..., description="Business id for validation"),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    # Validate access to provided business_id
+    validate_business_access(business_id, current_admin, db)
 
-    # Verify business exists
-    business = db.query(Business).filter(Business.id == biz_id).first()
-    if not business:
-        raise HTTPException(status_code=400, detail="Business not found")
-
-    # Verify admin owns this business
-    if business.owner_id != current_admin.id:
-        raise HTTPException(status_code=403, detail="You don't have access to this business")
-
+    # inject business_id into payload dict and create
+    payload = adjustment.model_dump()
+    payload["business_id"] = business_id
     try:
-        return create_strike(db, adjustment)
+        return create_strike(db, payload)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

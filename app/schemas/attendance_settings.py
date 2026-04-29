@@ -40,7 +40,7 @@ class AttendanceSettingsBase(BaseModel):
 
 
 class AttendanceSettingsCreate(AttendanceSettingsBase):
-    business_id: int = Field(..., gt=0, description="Business ID must be positive")
+    pass
 
 
 class AttendanceSettingsUpdate(BaseModel):

@@ -24,7 +24,7 @@ class SalaryStructureCreate(BaseModel):
 class SalaryStructureUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=120)
     rules: Optional[List[SalaryStructureRuleUpdate]] = None
-    business_id: Optional[int] = None   # Optional on update but should not be changed
+    # business_id removed from update payload to enforce business ownership via path
 
     @field_validator('name')
     @classmethod

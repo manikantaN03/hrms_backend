@@ -16,6 +16,8 @@ from app.api.v1.deps import get_current_admin
 from app.models.user import User
 from app.models.business import Business
 
+from app.api.v1.deps import validate_business_access
+
 router = APIRouter()
 
 valid_rule_types = ["Early Coming", "Late Coming", "Early Going", "Late Going", "Late Lunch"]
@@ -25,7 +27,10 @@ valid_directions = ["next", "previous"]
 
 
 @router.post("/", response_model=StrikeRuleResponse, status_code=201)
-def create_rule(rule: StrikeRuleCreate, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+def create_rule(rule: StrikeRuleCreate, business_id: int = Path(..., description="Business id for validation"), db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+    # validate business access
+    validate_business_access(business_id, current_admin, db)
+
     if rule.rule_type not in valid_rule_types:
         raise HTTPException(400, f"Invalid rule type. Must be one of: {valid_rule_types}")
     if rule.strike not in valid_strikes:
@@ -36,17 +41,10 @@ def create_rule(rule: StrikeRuleCreate, db: Session = Depends(get_db), current_a
         raise HTTPException(400, "Round direction must be 'next' or 'previous'")
     if rule.minutes < 0 or rule.round_minutes < 0:
         raise HTTPException(400, "Minutes and round_minutes cannot be negative")
-    # validate business exists and admin owns it
-    biz_id = getattr(rule, "business_id", None) or getattr(rule, "dict", lambda: {})().get("business_id")
-    if not biz_id:
-        raise HTTPException(status_code=400, detail="business_id is required")
-    biz = db.query(Business).filter(Business.id == biz_id).first()
-    if not biz:
-        raise HTTPException(status_code=400, detail="Business not found")
-    if biz.owner_id != current_admin.id:
-        raise HTTPException(status_code=403, detail="You don't have access to this business")
-
-    return create_strike_rule(db, rule)
+    # inject business_id into payload and create
+    payload = rule.dict()
+    payload["business_id"] = business_id
+    return create_strike_rule(db, payload)
 
 
 @router.get("/", response_model=List[StrikeRuleResponse])

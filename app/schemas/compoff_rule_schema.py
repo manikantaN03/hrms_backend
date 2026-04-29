@@ -18,7 +18,6 @@ class CompOffRuleCreate(CompOffRuleBase):
     full_day_hours: int = Field(default=0, ge=0, le=23, description="Hours threshold for full day comp off")
     full_day_mins: int = Field(default=0, ge=0, le=59, description="Minutes threshold for full day comp off")
     grant_type: str = Field(default="grant_comp_off", description="Grant type: grant_comp_off or add_to_extra_days")
-    business_id: Optional[int] = Field(None, description="Business ID")
 
     @field_validator("grant_type")
     @classmethod

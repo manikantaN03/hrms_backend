@@ -12,7 +12,7 @@ class HolidayBase(BaseModel):
 
 
 class HolidayCreate(HolidayBase):
-    business_id: Optional[int] = None
+    pass
 
 
 class HolidayUpdate(BaseModel):

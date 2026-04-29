@@ -3,12 +3,12 @@ Maintenance API Endpoints
 Handles system maintenance operations like salary recalculation and work profile updates
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional
 
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 from app.services.maintenance_service import MaintenanceService
 from app.schemas.maintenance_schema import (
@@ -30,6 +30,7 @@ router = APIRouter()
 )
 async def recalculate_salary_totals(
     request: Optional[RecalculateSalaryRequest] = None,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ) -> RecalculateSalaryResponse:
@@ -38,7 +39,8 @@ async def recalculate_salary_totals(
     This function recalculates salary totals for salary revisions.
     """
     try:
-        business_id = getattr(current_user, 'business_id', 1)
+        # validate access to the provided business_id
+        validate_business_access(business_id, current_user, db)
         
         service = MaintenanceService(db)
         result = service.recalculate_salary_totals(
@@ -72,6 +74,7 @@ async def recalculate_salary_totals(
 )
 async def update_work_profile_records(
     request: Optional[UpdateWorkProfileRequest] = None,
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ) -> UpdateWorkProfileResponse:
@@ -80,7 +83,8 @@ async def update_work_profile_records(
     This function updates missing work profile records and fixes duplicate work profile records.
     """
     try:
-        business_id = getattr(current_user, 'business_id', 1)
+        # validate access to the provided business_id
+        validate_business_access(business_id, current_user, db)
         
         service = MaintenanceService(db)
         result = service.update_work_profile_records(
@@ -116,13 +120,15 @@ async def update_work_profile_records(
     description="Get current maintenance status and statistics"
 )
 async def get_maintenance_status(
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ) -> MaintenanceResponse:
     """Get maintenance status and statistics"""
     try:
-        business_id = getattr(current_user, 'business_id', 1)
-        
+        # validate access to the provided business_id
+        validate_business_access(business_id, current_user, db)
+
         service = MaintenanceService(db)
         status_info = service.get_maintenance_status(business_id)
         
@@ -146,13 +152,15 @@ async def get_maintenance_status(
     description="Validate data integrity and identify potential issues"
 )
 async def validate_data_integrity(
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ) -> MaintenanceResponse:
     """Validate data integrity and identify potential issues"""
     try:
-        business_id = getattr(current_user, 'business_id', 1)
-        
+        # validate access to the provided business_id
+        validate_business_access(business_id, current_user, db)
+
         service = MaintenanceService(db)
         validation_result = service.validate_data_integrity(business_id)
         

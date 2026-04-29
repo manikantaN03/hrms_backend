@@ -30,7 +30,7 @@ class LeaveTypeBase(BaseModel):
 
 
 class LeaveTypeCreate(LeaveTypeBase):
-    business_id: Optional[int] = None
+    pass
 
 
 class LeaveTypeUpdate(BaseModel):
