@@ -16,6 +16,7 @@ import logging
 import asyncio
 
 from ..core.config import settings
+from app.core.otp import otp_manager
 
 logger = logging.getLogger(__name__)
 
@@ -206,7 +207,7 @@ class EmailService:
                 "user_name": user_name,
                 "user_email": user_email,
                 "otp": otp,
-                "otp_expiry_minutes": 2,
+                "otp_expiry_minutes": otp_manager.OTP_EXPIRY_MINUTES,
                 "support_email": settings.SMTP_FROM_EMAIL,
                 "current_year": datetime.utcnow().year,
             }
@@ -341,7 +342,7 @@ Need help? Contact us at {context['support_email']}
                 "user_name": user_name,
                 "user_email": user_email,
                 "otp": otp,
-                "otp_expiry_minutes": 2,
+                "otp_expiry_minutes": otp_manager.OTP_EXPIRY_MINUTES,
                 "support_email": settings.SMTP_FROM_EMAIL,
                 "current_year": datetime.utcnow().year,
             }

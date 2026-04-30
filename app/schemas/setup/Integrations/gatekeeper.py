@@ -25,11 +25,6 @@ class GatekeeperDeviceCreate(CamelModel):
         "deviceModel": "GK-101"
     }
     """
-    business_id: int = Field(
-        alias="businessId",
-        gt=0,
-        description="Business ID to which this device belongs"
-    )
     name: str = Field(
         alias="deviceName",
         min_length=1,
@@ -70,12 +65,6 @@ class GatekeeperDeviceUpdate(CamelModel):
     Schema for updating an existing gatekeeper device
     Frontend allows editing device name/model
     """
-    business_id: Optional[int] = Field(
-        alias="businessId",
-        default=None,
-        gt=0,
-        description="Business ID (optional for update)"
-    )
     name: Optional[str] = Field(
         alias="deviceName",
         default=None,

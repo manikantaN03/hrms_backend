@@ -52,16 +52,19 @@ def list_devices(
     status_code=status.HTTP_201_CREATED,
 )
 def create_device(
-    payload: BiometricDeviceCreate,
+    business_id: int = Path(...),
+    payload: BiometricDeviceCreate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
     """
     Create a new biometric device.
     """
-    # Ensure the admin has access to the business specified in the payload
-    validate_business_access(payload.business_id, current_user, db)
-    return svc.create_device_service(db, payload)
+    # Validate admin access to the business path param
+    validate_business_access(business_id, current_user, db)
+    data = payload.model_dump()
+    data["business_id"] = business_id
+    return svc.create_device_service(db, data)
 
 
 @router.put(
@@ -79,7 +82,8 @@ def update_device(
     Update an existing biometric device.
     """
     validate_business_access(business_id, current_user, db)
-    return svc.update_device_service(db, device_id, payload)
+    data = payload.model_dump()
+    return svc.update_device_service(db, device_id, data, business_id)
 
 
 @router.delete(

@@ -16,9 +16,9 @@ def list_sap_mappings_service(db: Session, business_id: int | None) -> list[SAPM
     return [SAPMappingResponse.model_validate(obj, from_attributes=True) for obj in results]
 
 
-def create_sap_mapping_service(db: Session, payload: SAPMappingCreate) -> SAPMappingResponse:
+def create_sap_mapping_service(db: Session, payload) -> SAPMappingResponse:
     """
-    Create a new SAP mapping.
+    Create a new SAP mapping. Accepts either a Pydantic model or a dict with business_id injected.
     """
     obj = repo.create_mapping(db, payload)
     return SAPMappingResponse.model_validate(obj, from_attributes=True)

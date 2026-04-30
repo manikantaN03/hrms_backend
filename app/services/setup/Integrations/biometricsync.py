@@ -44,7 +44,7 @@ def list_devices_service(
     return [BiometricDeviceOut.model_validate(d) for d in devices]
 
 
-def create_device_service(db: Session, payload: BiometricDeviceCreate) -> BiometricDeviceOut:
+def create_device_service(db: Session, payload: dict) -> BiometricDeviceOut:
     """
     Create new biometric device.
 
@@ -56,22 +56,23 @@ def create_device_service(db: Session, payload: BiometricDeviceCreate) -> Biomet
       - tenant_id (optional)
     """
     # ✅ Validate that the business exists before creating device
-    business = db.query(Business).filter(Business.id == payload.business_id).first()
+    business_id = payload.get("business_id")
+    business = db.query(Business).filter(Business.id == business_id).first()
     if not business:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Business with ID {payload.business_id} does not exist"
+            detail=f"Business with ID {business_id} does not exist"
         )
     
     device_code = _generate_device_code()
 
     device = repo.create_device(
         db,
-        business_id=payload.business_id,
-        tenant_id=payload.tenant_id,
-        name=payload.name,
-        host_url=payload.host_url,
-        app_version=payload.app_version or "1.0",
+        business_id=business_id,
+        tenant_id=payload.get("tenant_id"),
+        name=payload.get("name"),
+        host_url=payload.get("host_url") or "https://in2.runtimehrms.com",
+        app_version=payload.get("app_version") or "1.0",
         device_code=device_code,
     )
     return BiometricDeviceOut.model_validate(device)
@@ -84,27 +85,23 @@ def _get_device_or_404(db: Session, device_id: int) -> BiometricDevice:
     return device
 
 
-def update_device_service(
-    db: Session, device_id: int, payload: BiometricDeviceUpdate
-) -> BiometricDeviceOut:
+def update_device_service(db: Session, device_id: int, payload: dict, business_id: int) -> BiometricDeviceOut:
     device = _get_device_or_404(db, device_id)
 
-    # ✅ Validate that the new business exists (if business_id is being updated)
-    if payload.business_id is not None:
-        business = db.query(Business).filter(Business.id == payload.business_id).first()
-        if not business:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Business with ID {payload.business_id} does not exist"
-            )
+    # Ensure the device belongs to the requested business
+    if device.business_id != business_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found for this business")
+
+    # Prevent changing business via update (business is provided by path)
+    if payload.get("business_id") is not None and payload.get("business_id") != business_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot change business of device via this endpoint")
 
     device = repo.update_device(
         db,
         device,
-        business_id=payload.business_id,  # can be None (no change) or int (move to another business)
-        name=payload.name,
-        host_url=payload.host_url,
-        app_version=payload.app_version,
+        name=payload.get("name"),
+        host_url=payload.get("host_url"),
+        app_version=payload.get("app_version"),
     )
     return BiometricDeviceOut.model_validate(device)
 

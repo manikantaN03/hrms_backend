@@ -52,14 +52,19 @@ def list_sql_sources(
 )
 def create_sql_source(
     payload: SqlServerSourceCreate,
+    business_id: int = Path(..., description="Business id for validation"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
     """
     Create a new SQL Server source.
     """
-    validate_business_access(payload.business_id, current_user, db)
-    return svc.create_source_service(db, payload)
+    validate_business_access(business_id, current_user, db)
+
+    payload_dict = payload.model_dump()
+    payload_dict["business_id"] = business_id
+
+    return svc.create_source_service(db, payload_dict)
 
 
 @router.put(

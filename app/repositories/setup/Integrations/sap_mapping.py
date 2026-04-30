@@ -19,10 +19,20 @@ def list_mappings(db: Session, business_id: int | None = None) -> list[SAPMappin
     return results
 
 
-def create_mapping(db: Session, data: SAPMappingCreate) -> SAPMapping:
-    """Create a new SAP mapping."""
-    logger.info(f"[SAP MAPPING] Creating mapping for business_id={data.business_id}")
-    db_obj = SAPMapping(**data.dict(exclude_unset=True))
+def create_mapping(db: Session, data: SAPMappingCreate | dict) -> SAPMapping:
+    """Create a new SAP mapping. Accepts either a Pydantic model or a dict."""
+    # Normalize payload to dict
+    if isinstance(data, dict):
+        payload = data
+    else:
+        try:
+            payload = data.model_dump(exclude_unset=True)
+        except Exception:
+            # fallback to .dict for older patterns
+            payload = data.dict(exclude_unset=True)
+
+    logger.info(f"[SAP MAPPING] Creating mapping for business_id={payload.get('business_id')}")
+    db_obj = SAPMapping(**payload)
     db.add(db_obj)
     db.commit()
     db.refresh(db_obj)

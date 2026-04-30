@@ -19,30 +19,42 @@ def list_api_access(db: Session, business_id: int | None = None) -> list[APIAcce
     return query.all()
 
 
-def create_api_access(db: Session, data: APIAccessCreate) -> APIAccess:
-    """Create a new API access configuration."""
+def create_api_access(db: Session, data: APIAccessCreate | dict) -> APIAccess:
+    """Create a new API access configuration. Accepts Pydantic model or dict."""
+    # Normalize payload to dict
+    if isinstance(data, dict):
+        payload = data
+    else:
+        try:
+            payload = data.model_dump()
+        except Exception:
+            payload = data.dict()
+
+    business_id = payload.get("business_id")
+
     # Validate business exists
-    business = db.query(Business).filter(Business.id == data.business_id).first()
+    business = db.query(Business).filter(Business.id == business_id).first()
     if not business:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Business with ID {data.business_id} not found"
+            detail=f"Business with ID {business_id} not found"
         )
-    
+
     # Check if API access already exists for this business
-    existing = db.query(APIAccess).filter(APIAccess.business_id == data.business_id).first()
+    existing = db.query(APIAccess).filter(APIAccess.business_id == business_id).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"API Access already exists for business ID {data.business_id}"
+            detail=f"API Access already exists for business ID {business_id}"
         )
-    
+
     # Generate API key if enabled
-    api_key = "API-" + secrets.token_urlsafe(16) if data.api_enabled else None
-    
+    api_enabled = payload.get("api_enabled")
+    api_key = "API-" + secrets.token_urlsafe(16) if api_enabled else None
+
     db_obj = APIAccess(
-        business_id=data.business_id,
-        is_enabled=data.api_enabled,
+        business_id=business_id,
+        is_enabled=api_enabled,
         api_key=api_key,
     )
     db.add(db_obj)

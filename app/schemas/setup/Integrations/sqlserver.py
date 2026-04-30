@@ -68,12 +68,6 @@ class SqlServerSourceCreate(CamelModel):
         description="Active status"
     )
 
-    # 🔹 Business relationship (required)
-    business_id: int = Field(
-        alias="businessId",
-        gt=0,
-        description="Business ID to which this source belongs"
-    )
 
 
     # 🔹 Optional tenant context
@@ -154,11 +148,6 @@ class SqlServerSourceUpdate(CamelModel):
     )
 
     # 🔹 Allow changing business/tenant if needed
-    business_id: Optional[int] = Field(
-        default=None,
-        alias="businessId",
-        gt=0
-    )
     tenant_id: Optional[int] = Field(
         default=None,
         alias="tenantId",

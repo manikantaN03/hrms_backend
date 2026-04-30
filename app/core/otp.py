@@ -16,7 +16,7 @@ class OTPManager:
     
     # Configuration constants
     OTP_LENGTH = 6
-    OTP_EXPIRY_MINUTES = 2
+    OTP_EXPIRY_MINUTES = 4
     MAX_ATTEMPTS = 5
     RESEND_COOLDOWN_SECONDS = 60
     

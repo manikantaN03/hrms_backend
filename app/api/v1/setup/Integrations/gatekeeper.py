@@ -49,14 +49,18 @@ def list_devices(
 )
 def create_device(
     payload: GatekeeperDeviceCreate,
+    business_id: int = Path(..., description="Business id for validation"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
     """
     POST /api/v1/integrations/gatekeeper-devices
     """
-    validate_business_access(payload.business_id, current_user, db)
-    return svc.create_device_service(db, payload)
+    validate_business_access(business_id, current_user, db)
+
+    payload_dict = payload.model_dump()
+    payload_dict["business_id"] = business_id
+    return svc.create_device_service(db, payload_dict)
 
 
 # ---------------------------------------------------------
@@ -77,7 +81,7 @@ def update_device(
     PUT /api/v1/integrations/gatekeeper-devices/{business_id}/{device_id}
     """
     validate_business_access(business_id, current_user, db)
-    return svc.update_device_service(db, device_id, payload)
+    return svc.update_device_service(db, device_id, payload, business_id)
 
 
 # ---------------------------------------------------------

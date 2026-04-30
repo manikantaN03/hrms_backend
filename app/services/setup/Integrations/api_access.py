@@ -17,12 +17,11 @@ def list_api_access_service(db: Session, business_id: int | None) -> list[APIAcc
     return [APIAccessResponse.model_validate(obj) for obj in results]
 
 
-def create_api_access_service(db: Session, payload: APIAccessCreate) -> APIAccessResponse:
+def create_api_access_service(db: Session, payload) -> APIAccessResponse:
     """
-    Create a new API access configuration.
+    Create a new API access configuration. Accepts Pydantic model or dict payload.
     """
     obj = repo.create_api_access(db, payload)
-    # Return the object directly - Pydantic will read from ORM attributes
     return APIAccessResponse.model_validate(obj, from_attributes=True)
 
 

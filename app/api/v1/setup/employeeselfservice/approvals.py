@@ -3,7 +3,7 @@ Approval Settings Endpoints
 API routes for Approval configuration
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Path, Body
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -126,7 +126,8 @@ def get_approval_settings(
     summary="Create or update approval settings",
 )
 def save_approval_settings(
-    data: ApprovalSettingsCreateUpdate,
+    business_id: int = Path(...),
+    data: ApprovalSettingsCreateUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -135,19 +136,12 @@ def save_approval_settings(
 
     POST returns **200 OK** with updated settings
     """
-    # business_id must be provided in request body
-    business_id = getattr(data, "business_id", None)
-    if not business_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="business_id is required in request body",
-        )
-
     validate_business_access(business_id, current_user, db)
     service = get_approval_service(db)
 
     # Convert to dict for repository
     payload = data.model_dump(by_alias=False)
+    payload["business_id"] = business_id
     settings = service.create_or_update(payload)
 
     return approval_to_response_dict(settings)

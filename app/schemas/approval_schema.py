@@ -3,8 +3,7 @@ from typing import Literal
 
 
 class ApprovalSettingsCreateUpdate(BaseModel):
-    business_id: int = Field(..., alias="businessId", gt=0, description="Business ID")
-
+    # business_id is provided via path parameter; not part of request body
     leave_request: Literal["manager", "both", "managerThenHR"] = Field(
         ..., 
         alias="leaveRequest",

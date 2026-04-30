@@ -3,7 +3,7 @@ ESS User Management Endpoints
 API routes for managing employee access to mobile app and web portal
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Path, Body
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -72,7 +72,8 @@ def get_filter_options(
     summary="Send mobile login details via email",
 )
 async def send_mobile_login(
-    request: SendLoginRequest,
+    business_id: int = Path(...),
+    request: SendLoginRequest = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -80,11 +81,11 @@ async def send_mobile_login(
     Send mobile app login details to selected employees via email
     **Access:** ADMIN or SUPERADMIN
     """
-    validate_business_access(request.business_id, current_user, db)
+    validate_business_access(business_id, current_user, db)
     service = get_user_management_service(db)
     
     result = await service.send_mobile_login_details(
-        business_id=request.business_id,
+        business_id=business_id,
         location=request.location,
         cost_center=request.cost_center,
         department=request.department,
@@ -107,7 +108,8 @@ async def send_mobile_login(
     summary="Send web portal login invitations via email",
 )
 async def send_web_login(
-    request: SendLoginRequest,
+    business_id: int = Path(...),
+    request: SendLoginRequest = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -115,11 +117,11 @@ async def send_web_login(
     Create web portal accounts and send invitation emails to selected employees
     **Access:** ADMIN or SUPERADMIN
     """
-    validate_business_access(request.business_id, current_user, db)
+    validate_business_access(business_id, current_user, db)
     service = get_user_management_service(db)
     
     result = await service.send_web_login_invitations(
-        business_id=request.business_id,
+        business_id=business_id,
         location=request.location,
         cost_center=request.cost_center,
         department=request.department

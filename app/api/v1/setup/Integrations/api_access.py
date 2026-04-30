@@ -35,6 +35,7 @@ def list_api_access(
 @router.post("", response_model=APIAccessResponse, status_code=status.HTTP_201_CREATED)
 def create_api_access(
     payload: APIAccessCreate,
+    business_id: int = Path(..., description="Business id for validation"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
@@ -42,8 +43,13 @@ def create_api_access(
     Create new API Access configuration.
     POST /api/v1/integrations/api-access
     """
-    validate_business_access(payload.business_id, current_user, db)
-    return svc.create_api_access_service(db, payload)
+    # Validate access to the provided business id
+    validate_business_access(business_id, current_user, db)
+
+    # Inject business_id into payload dict and forward
+    payload_dict = payload.model_dump()
+    payload_dict["business_id"] = business_id
+    return svc.create_api_access_service(db, payload_dict)
 
 
 # ✅ Update API Access (ADMIN / SUPERADMIN)

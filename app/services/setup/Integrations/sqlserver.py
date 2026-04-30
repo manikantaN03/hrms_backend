@@ -43,17 +43,28 @@ def list_sources_service(
 
 def create_source_service(
     db: Session,
-    payload: SqlServerSourceCreate,
+    payload,
     tenant_id: Optional[int] = None,
 ) -> SqlServerSourceOut:
+    # Accept either a Pydantic model or a dict payload (handler injects business_id)
+    if isinstance(payload, dict):
+        p = payload
+    else:
+        # model
+        try:
+            p = payload.model_dump()
+        except Exception:
+            p = payload.dict()
+
+    business_id = p.get("business_id")
     # ✅ Validate that the business exists before creating source
-    business = db.query(Business).filter(Business.id == payload.business_id).first()
+    business = db.query(Business).filter(Business.id == business_id).first()
     if not business:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Business with ID {payload.business_id} does not exist"
+            detail=f"Business with ID {business_id} does not exist"
         )
-    
+
     # enforce 3-source limit
     current_count = repo.count_sources(db, tenant_id=tenant_id)
     if current_count >= MAX_SQL_SOURCES_PER_TENANT:
@@ -64,17 +75,17 @@ def create_source_service(
 
     src = repo.create_source(
         db,
-        business_id=payload.business_id,
-        source_name=payload.source_name,
-        server_address=payload.server_address,
-        database_name=payload.database_name,
-        database_username=payload.database_username,
-        database_password=payload.database_password,
-        table_name=payload.table_name,
-        user_id_column=payload.user_id_column,
-        time_column=payload.time_column,
-        is_active=payload.is_active,
-        tenant_id=tenant_id or payload.tenant_id,
+        business_id=business_id,
+        source_name=p.get("source_name"),
+        server_address=p.get("server_address"),
+        database_name=p.get("database_name"),
+        database_username=p.get("database_username"),
+        database_password=p.get("database_password"),
+        table_name=p.get("table_name"),
+        user_id_column=p.get("user_id_column"),
+        time_column=p.get("time_column"),
+        is_active=p.get("is_active"),
+        tenant_id=tenant_id or p.get("tenant_id"),
     )
 
     return SqlServerSourceOut.model_validate(src)

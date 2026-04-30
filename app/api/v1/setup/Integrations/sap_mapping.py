@@ -58,18 +58,22 @@ def list_sap_mappings(
 )
 def create_sap_mapping(
     payload: SAPMappingCreate,
+    business_id: int = Path(..., description="Business id for validation"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
     """
     POST /api/v1/integrations/sap-mapping
     """
-    # CRITICAL: Inject user's business_id into payload
-    from app.api.v1.endpoints.master_setup import get_user_business_id
-    user_business_id = get_user_business_id(current_user, db)
-    payload.business_id = user_business_id
-    
-    return svc.create_sap_mapping_service(db, payload)
+    # Validate that current user has access to this business
+    from app.api.v1.deps import validate_business_access
+    validate_business_access(business_id, current_user, db)
+
+    # Inject business_id into payload dict and forward to service/repo
+    payload_dict = payload.model_dump()
+    payload_dict["business_id"] = business_id
+
+    return svc.create_sap_mapping_service(db, payload_dict)
 
 
 # ---------------------------------------------------------

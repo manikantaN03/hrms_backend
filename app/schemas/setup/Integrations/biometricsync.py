@@ -25,7 +25,6 @@ class BiometricDeviceCreate(CamelModel):
         "appVersion": "1.0"
     }
     """
-    business_id: int = Field(alias="businessId")
     name: str = Field(alias="deviceName")
     host_url: Optional[str] = Field(alias="hostURL", default="https://in2.runtimehrms.com")
     app_version: Optional[str] = Field(alias="appVersion", default="1.0")
@@ -37,7 +36,6 @@ class BiometricDeviceCreate(CamelModel):
 # ---------------------------------------------------------
 
 class BiometricDeviceUpdate(CamelModel):
-    business_id: Optional[int] = Field(alias="businessId", default=None)
     name: Optional[str] = Field(alias="deviceName", default=None)
     host_url: Optional[str] = Field(alias="hostURL", default=None)
     app_version: Optional[str] = Field(alias="appVersion", default=None)

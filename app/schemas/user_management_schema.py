@@ -11,7 +11,6 @@ class FilterOptionsResponse(BaseModel):
 
 
 class SendLoginRequest(BaseModel):
-    business_id: int = Field(..., alias="businessId", gt=0, description="Business ID")
     location: Optional[str] = Field(None, max_length=100, description="Filter by location")
     cost_center: Optional[str] = Field(None, alias="costCenter", max_length=100, description="Filter by cost center")
     department: Optional[str] = Field(None, max_length=100, description="Filter by department")
@@ -37,7 +36,6 @@ class SendLoginResponse(BaseModel):
 
 
 class EmployeeFilterRequest(BaseModel):
-    business_id: int = Field(..., alias="businessId", gt=0, description="Business ID")
     location: Optional[str] = Field(None, max_length=100, description="Filter by location")
     cost_center: Optional[str] = Field(None, alias="costCenter", max_length=100, description="Filter by cost center")
     department: Optional[str] = Field(None, max_length=100, description="Filter by department")
