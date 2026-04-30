@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status, Path, Body
 
 from sqlalchemy.orm import Session
  
-from app.api.v1.deps import get_db, get_current_admin
+from app.api.v1.deps import get_db, get_current_admin, validate_business_access
 
 from app.models.user import User
  
@@ -160,12 +160,16 @@ def create_lwf_rate(
 
 def list_lwf_rates(
 
+    business_id: int = Path(...),
     db: Session = Depends(get_db),
-
     current_user: User = Depends(get_current_admin),
-
 ):
 
-    return service.list_rates(db)
+    # Validate admin access to the business path param
+    validate_business_access(business_id, current_user, db)
+
+    rates = service.list_rates(db)
+    # filter by business_id to return only rates for this business
+    return [r for r in rates if getattr(r, "business_id", None) == business_id]
 
  

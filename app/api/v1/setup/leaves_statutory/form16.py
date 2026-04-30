@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.config import settings
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 from app.models.business import Business
 from app.models.form16_models import PersonResponsible, EmployerInfo, CitInfo
@@ -445,23 +445,24 @@ def delete_employer_info(
 @router.post("/cit", response_model=CITInfoResponse, status_code=status.HTTP_201_CREATED)
 def create_cit_info(
     cit_data: CITInfoCreate,
+    business_id: int = PathParam(...),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin),
 ):
-    # resolve business_id from user context (no query param)
-    bid = _resolve_business_id(current_user, db, None)
-    if not bid:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Business context missing")
-    business = db.query(Business).filter(Business.id == bid).first()
+    # Validate admin access to the business path param
+    validate_business_access(business_id, current_user, db)
+
+    business = db.query(Business).filter(Business.id == business_id).first()
+    
     if not business:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Business with id {bid} does not exist.")
- 
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Business with id {business_id} does not exist.")
+
     try:
         repo = Form16Repository(db)
         payload = cit_data.model_dump()
-        payload["business_id"] = bid
+        payload["business_id"] = business_id
         db_cit = repo.create_cit(payload)  # ensures commit + refresh
- 
+
         return {
             "id": db_cit.id,
             "name": db_cit.name,
@@ -472,7 +473,7 @@ def create_cit_info(
             "created_at": db_cit.created_at,
             "updated_at": db_cit.updated_at,
         }
- 
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Error creating record: {str(e)}")
@@ -608,20 +609,23 @@ def delete_cit_info(
 
 
 @router.post("/form16/employer", response_model=EmployerResponse, status_code=status.HTTP_201_CREATED)
-def create_employer(employer: EmployerCreate, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+def create_employer(
+    employer: EmployerCreate,
+    business_id: int = PathParam(...),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
     service = get_form16_service(db)
+
+    # validate admin access to the business path param
+    validate_business_access(business_id, current_admin, db)
+
+    if not db.query(Business).filter(Business.id == business_id).first():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Business {business_id} not found")
+
     payload = employer.model_dump()
-    # resolve business_id: prefer provided, then admin.business_id, then admin.businesses[0]
-    bid = payload.get("business_id") or getattr(current_admin, "business_id", None)
-    if not bid:
-        businesses = getattr(current_admin, "businesses", None)
-        if businesses:
-            bid = businesses[0].id
-    if not bid:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="business_id missing")
-    if not db.query(Business).filter(Business.id == bid).first():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Business {bid} not found")
-    payload["business_id"] = bid
-    created = service.create_employer(payload, business_id=bid)
+    payload["business_id"] = business_id
+    created = service.create_employer(payload, business_id=business_id)
+
     # Return a mapped dict so camelCase `placeOfIssue` is populated from the ORM field
     return employer_info_to_dict(created)

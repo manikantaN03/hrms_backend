@@ -104,12 +104,6 @@ class GatekeeperDeviceOut(CamelModel):
     """Schema for gatekeeper device output"""
     id: int = Field(description="Device ID")
 
-    # Return businessId so frontend knows where device belongs
-    business_id: Optional[int] = Field(
-        default=None,
-        serialization_alias="businessId",
-        description="Business ID"
-    )
 
     name: str = Field(description="Device name")
 

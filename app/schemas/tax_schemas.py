@@ -104,11 +104,7 @@ class FinancialYearBase(BaseModel):
 
 
 class FinancialYearCreate(FinancialYearBase):
-    business_id: int = Field(
-        ...,
-        gt=0,
-        description="Business ID for which financial year is being created"
-    )
+    pass
 
 
 class FinancialYearUpdate(BaseModel):

@@ -3,7 +3,7 @@ from typing import List, Optional, Annotated
 from datetime import date
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -88,13 +88,14 @@ def get_financial_years(db: Session = Depends(get_db), current_admin: User = Dep
 
 
 @router.post("/financial-years", response_model=FinancialYearResponse, status_code=status.HTTP_201_CREATED)
-def create_financial_year(payload: FinancialYearCreate, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
+def create_financial_year(business_id: int = Path(...), payload: FinancialYearCreate = Body(...), db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     service = get_tax_service(db)
+    # validate/resolve business_id via admin context
+    bid = _resolve_business_id(current_admin, db, business_id)
+
     data = payload.model_dump() if hasattr(payload, "model_dump") else payload.dict()
-    # business_id required in payload; validate/resolve if needed
-    bid = data.get("business_id")
-    bid = _resolve_business_id(current_admin, db, bid)
     data["business_id"] = bid
+
     created = service.create_financial_year(data)
     # ensure response includes business_id
     if isinstance(created, dict):

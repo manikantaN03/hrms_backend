@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Query, Path, Body
 from sqlalchemy.orm import Session
 from typing import List
 import re
@@ -8,7 +8,7 @@ from app.models.tds24q_models import TDS24Q
 from app.models.business import Business
 from app.schemas.tds24q_schemas import TDS24QCreate, TDS24QUpdate, TDS24QResponse
 from app.repositories.tds24q_repository import tds24q_repository as repo
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 router = APIRouter()
 
 def _camel_to_snake(name: str) -> str:
@@ -16,40 +16,35 @@ def _camel_to_snake(name: str) -> str:
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 @router.get("/")
-def read_root():
-    """Root endpoint with API information"""
+def read_root(business_id: int = Path(...), db: Session = Depends(get_db), current_user = Depends(get_current_admin)):
+    """Root endpoint with API information (business-scoped)"""
+    # Validate admin access to the business path param
+    validate_business_access(business_id, current_user, db)
+
     return {
         "message": "TDS 24Q API is running",
         "version": "1.0.0",
         "endpoints": {
             "docs": "/docs",
-            "create": "POST /api/v1/setup/tds24q",
-            "get_all": "GET /api/v1/setup/tds24q",
-            "get_one": "GET /api/v1/setup/tds24q/{id}",
-            "update": "PUT /api/v1/setup/tds24q/{id}",
-            "delete": "DELETE /api/v1/setup/tds24q/{id}"
+            "create": "POST /api/v1/{business_id}/setup/tds24q",
+            "get_all": "GET /api/v1/{business_id}/setup/tds24q",
+            "get_one": "GET /api/v1/{business_id}/setup/tds24q/{id}",
+            "update": "PUT /api/v1/{business_id}/setup/tds24q/{id}",
+            "delete": "DELETE /api/v1/{business_id}/setup/tds24q/{id}"
         }
     }
 
 
 @router.post("", response_model=dict, status_code=status.HTTP_201_CREATED)
 def create_tds_record(
-    tds_data: TDS24QCreate,
+    business_id: int = Path(...),
+    tds_data: TDS24QCreate = Body(...),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin),
 ):
-    """Create a new TDS 24Q record with business_id resolved from payload (preferred) or current user."""
-    raw = tds_data.model_dump() if hasattr(tds_data, "model_dump") else tds_data.dict()
-    business_id = raw.get("business_id") or getattr(current_user, "business_id", None)
-    if business_id is None:
-        try:
-            businesses = getattr(current_user, "businesses", None)
-            if businesses:
-                business_id = businesses[0].id
-        except Exception:
-            business_id = None
-    if not business_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Business context missing")
+    """Create a new TDS 24Q record for the given business_id."""
+    # Validate admin access to provided business_id
+    validate_business_access(business_id, current_user, db)
 
     business = db.query(Business).filter(Business.id == business_id).first()
     if not business:
@@ -58,7 +53,7 @@ def create_tds_record(
             detail=f"Business with id {business_id} does not exist. Create the business before adding TDS 24Q."
         )
 
-    # Use the validated Pydantic model, convert to dict, attach business_id and pass to repo.
+    raw = tds_data.model_dump() if hasattr(tds_data, "model_dump") else tds_data.dict()
     raw["business_id"] = business_id
 
     try:

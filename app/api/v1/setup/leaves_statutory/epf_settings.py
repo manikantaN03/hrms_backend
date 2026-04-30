@@ -3,13 +3,13 @@ EPF Settings Endpoints
 API routes for EPF configuration
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Path, Body
 from sqlalchemy.orm import Session
 from typing import List
 import logging
 
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 from app.schemas.epf_settings import (
     EPFSettingsResponse,
@@ -57,8 +57,9 @@ def get_epf_settings(
     summary="Update EPF Settings"
 )
 def update_epf_settings(
-    settings_id: int,
-    data: EPFSettingsUpdate,
+    business_id: int = Path(...),
+    settings_id: int = Path(...),
+    data: EPFSettingsUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -68,11 +69,19 @@ def update_epf_settings(
     **Access:** ADMIN or SUPERADMIN
     """
     service = EPFSettingsService(db)
-    
+
+    # Validate admin access to the business
+    validate_business_access(business_id, current_user, db)
+
+    # Ensure the settings belong to the requested business
+    settings_obj = service.settings_repo.get(settings_id)
+    if not settings_obj or settings_obj.business_id != business_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="EPF settings not found for this business")
+
     try:
         update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
         settings = service.update_settings(settings_id, update_dict)
-        
+
         logger.info(f"EPF settings {settings_id} updated by {current_user.email}")
         return settings
     except Exception as e:
@@ -94,8 +103,9 @@ def update_epf_settings(
     summary="Add Component Mapping"
 )
 def add_component_mapping(
-    settings_id: int,
-    data: EPFComponentMappingCreate,
+    business_id: int = Path(...),
+    settings_id: int = Path(...),
+    data: EPFComponentMappingCreate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -105,7 +115,15 @@ def add_component_mapping(
     **Access:** ADMIN or SUPERADMIN
     """
     service = EPFSettingsService(db)
-    
+
+    # Validate admin has access to the business
+    validate_business_access(business_id, current_user, db)
+
+    # Ensure the settings belong to the requested business
+    settings_obj = service.settings_repo.get(settings_id)
+    if not settings_obj or settings_obj.business_id != business_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="EPF settings not found for this business")
+
     try:
         component = service.add_component_mapping(settings_id, data.model_dump())
         logger.info(f"Component added to EPF settings {settings_id} by {current_user.email}")
@@ -124,8 +142,9 @@ def add_component_mapping(
     summary="Update Component Mapping"
 )
 def update_component_mapping(
-    component_id: int,
-    data: EPFComponentMappingUpdate,
+    business_id: int = Path(...),
+    component_id: int = Path(...),
+    data: EPFComponentMappingUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -135,11 +154,19 @@ def update_component_mapping(
     **Access:** ADMIN or SUPERADMIN
     """
     service = EPFSettingsService(db)
-    
+
+    # Validate admin access to the business
+    validate_business_access(business_id, current_user, db)
+
+    # Ensure component belongs to the business
+    comp = service.component_repo.get(component_id)
+    if not comp or not comp.epf_settings or comp.epf_settings.business_id != business_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Component not found for this business")
+
     try:
         update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
         component = service.update_component_mapping(component_id, update_dict)
-        
+
         logger.info(f"Component {component_id} updated by {current_user.email}")
         return component
     except Exception as e:
@@ -155,7 +182,8 @@ def update_component_mapping(
     summary="Bulk Update Components"
 )
 def bulk_update_components(
-    data: EPFComponentBulkUpdate,
+    business_id: int = Path(...),
+    data: EPFComponentBulkUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -165,7 +193,16 @@ def bulk_update_components(
     **Access:** ADMIN or SUPERADMIN
     """
     service = EPFSettingsService(db)
-    
+
+    # Validate admin access
+    validate_business_access(business_id, current_user, db)
+
+    # Verify components belong to business
+    for cid in data.component_ids:
+        comp = service.component_repo.get(cid)
+        if not comp or not comp.epf_settings or comp.epf_settings.business_id != business_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Component {cid} not found for this business")
+
     try:
         count = service.bulk_update_components(data.component_ids, data.is_selected)
         logger.info(f"{count} components updated by {current_user.email}")
@@ -189,8 +226,9 @@ def bulk_update_components(
     summary="Add EPF Rate"
 )
 def add_epf_rate(
-    settings_id: int,
-    data: EPFRateChangeCreate,
+    business_id: int = Path(...),
+    settings_id: int = Path(...),
+    data: EPFRateChangeCreate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -200,7 +238,15 @@ def add_epf_rate(
     **Access:** ADMIN or SUPERADMIN
     """
     service = EPFSettingsService(db)
-    
+
+    # Validate admin access
+    validate_business_access(business_id, current_user, db)
+
+    # Ensure settings belong to business
+    settings_obj = service.settings_repo.get(settings_id)
+    if not settings_obj or settings_obj.business_id != business_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="EPF settings not found for this business")
+
     try:
         rate = service.add_rate_change(settings_id, data.model_dump())
         logger.info(f"EPF rate added to settings {settings_id} by {current_user.email}")
@@ -219,8 +265,9 @@ def add_epf_rate(
     summary="Update EPF Rate"
 )
 def update_epf_rate(
-    rate_id: int,
-    data: EPFRateChangeUpdate,
+    business_id: int = Path(...),
+    rate_id: int = Path(...),
+    data: EPFRateChangeUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -230,11 +277,19 @@ def update_epf_rate(
     **Access:** ADMIN or SUPERADMIN
     """
     service = EPFSettingsService(db)
-    
+
+    # Validate access
+    validate_business_access(business_id, current_user, db)
+
+    # Ensure rate belongs to a settings record for this business
+    rate_obj = service.rate_repo.get(rate_id)
+    if not rate_obj or not rate_obj.epf_settings or rate_obj.epf_settings.business_id != business_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="EPF rate not found for this business")
+
     try:
         update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
         rate = service.update_rate_change(rate_id, update_dict)
-        
+
         logger.info(f"EPF rate {rate_id} updated by {current_user.email}")
         return rate
     except Exception as e:
@@ -251,7 +306,8 @@ def update_epf_rate(
     summary="Delete EPF Rate"
 )
 def delete_epf_rate(
-    rate_id: int,
+    business_id: int = Path(...),
+    rate_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -261,7 +317,13 @@ def delete_epf_rate(
     **Access:** ADMIN or SUPERADMIN
     """
     service = EPFSettingsService(db)
-    
+
+    validate_business_access(business_id, current_user, db)
+
+    rate_obj = service.rate_repo.get(rate_id)
+    if not rate_obj or not rate_obj.epf_settings or rate_obj.epf_settings.business_id != business_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="EPF rate not found for this business")
+
     try:
         service.delete_rate_change(rate_id)
         logger.info(f"EPF rate {rate_id} deleted by {current_user.email}")

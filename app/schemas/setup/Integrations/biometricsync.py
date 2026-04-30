@@ -48,8 +48,6 @@ class BiometricDeviceUpdate(CamelModel):
 class BiometricDeviceOut(CamelModel):
     id: int
 
-    # Return businessId so frontend knows which business owns this device
-    business_id: Optional[int] = Field(default=None, alias="businessId")
 
     name: str = Field(alias="deviceName")
     device_code: str = Field(alias="code")

@@ -3,13 +3,13 @@ Professional Tax Endpoints
 API routes for Professional Tax configuration
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Path, Query, Body
 from sqlalchemy.orm import Session
 from typing import List
 import logging
 
 from app.core.database import get_db
-from app.api.v1.deps import get_current_admin
+from app.api.v1.deps import get_current_admin, validate_business_access
 from app.models.user import User
 from app.schemas.professional_tax import (
     ProfessionalTaxSettingsResponse,
@@ -58,8 +58,9 @@ def get_professional_tax_settings(
     summary="Update Professional Tax Settings"
 )
 def update_professional_tax_settings(
-    settings_id: int,
-    data: ProfessionalTaxSettingsUpdate,
+    business_id: int = Path(...),
+    settings_id: int = Path(...),
+    data: ProfessionalTaxSettingsUpdate = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -69,12 +70,15 @@ def update_professional_tax_settings(
     **Access:** ADMIN or SUPERADMIN
     """
     service = ProfessionalTaxService(db)
-    
+
+    # Validate admin access to the business path param
+    validate_business_access(business_id, current_user, db)
+
     try:
         update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
         settings = service.update_settings(settings_id, update_dict)
-        
-        logger.info(f"Professional Tax settings {settings_id} updated by {current_user.email}")
+
+        logger.info(f"Professional Tax settings {settings_id} updated for business {business_id} by {current_user.email}")
         return settings
     except Exception as e:
         logger.error(f"Error updating Professional Tax settings: {str(e)}")
@@ -95,8 +99,9 @@ def update_professional_tax_settings(
     summary="Add Component Mapping"
 )
 def add_component_mapping(
-    settings_id: int,
-    data: PTComponentMappingCreate,
+    business_id: int = Path(...),
+    settings_id: int = Path(...),
+    data: PTComponentMappingCreate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -105,10 +110,15 @@ def add_component_mapping(
     
     **Access:** ADMIN or SUPERADMIN
     """
+    # Validate admin access to the business path param
+    validate_business_access(business_id, current_user, db)
+
     service = ProfessionalTaxService(db)
-    
+
     try:
-        component = service.add_component_mapping(settings_id, data.model_dump())
+        payload = data.model_dump()
+        payload["business_id"] = business_id
+        component = service.add_component_mapping(settings_id, payload)
         logger.info(f"Component added to PT settings {settings_id} by {current_user.email}")
         return component
     except Exception as e:
@@ -125,8 +135,9 @@ def add_component_mapping(
     summary="Update Component Mapping"
 )
 def update_component_mapping(
-    component_id: int,
-    data: PTComponentMappingUpdate,
+    business_id: int = Path(...),
+    component_id: int = Path(...),
+    data: PTComponentMappingUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -135,13 +146,16 @@ def update_component_mapping(
     
     **Access:** ADMIN or SUPERADMIN
     """
+    # Validate admin access to the business path param
+    validate_business_access(business_id, current_user, db)
+
     service = ProfessionalTaxService(db)
-    
+
     try:
         update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
         component = service.update_component_mapping(component_id, update_dict)
-        
-        logger.info(f"Component {component_id} updated by {current_user.email}")
+
+        logger.info(f"Component {component_id} updated for business {business_id} by {current_user.email}")
         return component
     except Exception as e:
         logger.error(f"Error updating component: {str(e)}")
@@ -156,7 +170,8 @@ def update_component_mapping(
     summary="Bulk Update Components"
 )
 def bulk_update_components(
-    data: PTComponentBulkUpdate,
+    business_id: int = Path(...),
+    data: PTComponentBulkUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -165,11 +180,14 @@ def bulk_update_components(
     
     **Access:** ADMIN or SUPERADMIN
     """
+    # Validate admin access to the business path param
+    validate_business_access(business_id, current_user, db)
+
     service = ProfessionalTaxService(db)
-    
+
     try:
         count = service.bulk_update_components(data.component_ids, data.is_selected)
-        logger.info(f"{count} components updated by {current_user.email}")
+        logger.info(f"{count} components updated for business {business_id} by {current_user.email}")
         return {"updated_count": count, "message": f"{count} components updated successfully"}
     except Exception as e:
         logger.error(f"Error bulk updating components: {str(e)}")
@@ -190,8 +208,9 @@ def bulk_update_components(
     summary="Add Professional Tax Rate"
 )
 def add_professional_tax_rate(
-    settings_id: int,
-    data: ProfessionalTaxRateCreate,
+    business_id: int = Path(...),
+    settings_id: int = Path(...),
+    data: ProfessionalTaxRateCreate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -200,11 +219,16 @@ def add_professional_tax_rate(
     
     **Access:** ADMIN or SUPERADMIN
     """
+    # Validate admin access to the business path param
+    validate_business_access(business_id, current_user, db)
+
     service = ProfessionalTaxService(db)
-    
+
     try:
-        rate = service.add_tax_rate(settings_id, data.model_dump())
-        logger.info(f"PT rate added to settings {settings_id} by {current_user.email}")
+        payload = data.model_dump()
+        payload["business_id"] = business_id
+        rate = service.add_tax_rate(settings_id, payload)
+        logger.info(f"PT rate added to settings {settings_id} for business {business_id} by {current_user.email}")
         return rate
     except Exception as e:
         logger.error(f"Error adding PT rate: {str(e)}")
@@ -220,8 +244,9 @@ def add_professional_tax_rate(
     summary="Update Professional Tax Rate"
 )
 def update_professional_tax_rate(
-    rate_id: int,
-    data: ProfessionalTaxRateUpdate,
+    business_id: int = Path(...),
+    rate_id: int = Path(...),
+    data: ProfessionalTaxRateUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -230,13 +255,16 @@ def update_professional_tax_rate(
     
     **Access:** ADMIN or SUPERADMIN
     """
+    # Validate admin access to the business path param
+    validate_business_access(business_id, current_user, db)
+
     service = ProfessionalTaxService(db)
-    
+
     try:
         update_dict = {k: v for k, v in data.model_dump().items() if v is not None}
         rate = service.update_tax_rate(rate_id, update_dict)
-        
-        logger.info(f"PT rate {rate_id} updated by {current_user.email}")
+
+        logger.info(f"PT rate {rate_id} updated for business {business_id} by {current_user.email}")
         return rate
     except Exception as e:
         logger.error(f"Error updating PT rate: {str(e)}")
@@ -252,7 +280,8 @@ def update_professional_tax_rate(
     summary="Delete Professional Tax Rate"
 )
 def delete_professional_tax_rate(
-    rate_id: int,
+    business_id: int = Path(...),
+    rate_id: int = Path(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
 ):
@@ -261,11 +290,14 @@ def delete_professional_tax_rate(
     
     **Access:** ADMIN or SUPERADMIN
     """
+    # Validate admin access to the business path param
+    validate_business_access(business_id, current_user, db)
+
     service = ProfessionalTaxService(db)
-    
+
     try:
         service.delete_tax_rate(rate_id)
-        logger.info(f"PT rate {rate_id} deleted by {current_user.email}")
+        logger.info(f"PT rate {rate_id} deleted for business {business_id} by {current_user.email}")
     except Exception as e:
         logger.error(f"Error deleting PT rate: {str(e)}")
         raise HTTPException(
@@ -280,7 +312,8 @@ def delete_professional_tax_rate(
     summary="Get Rates by State"
 )
 def get_rates_by_state(
-    settings_id: int,
+    business_id: int = Path(...),
+    settings_id: int = Path(...),
     state: str = Query(..., description="State name"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin)
@@ -290,11 +323,14 @@ def get_rates_by_state(
     
     **Access:** ADMIN or SUPERADMIN
     """
+    # Validate admin access to the business path param
+    validate_business_access(business_id, current_user, db)
+
     service = ProfessionalTaxService(db)
-    
+
     try:
         rates = service.get_rates_by_state(settings_id, state)
-        logger.info(f"PT rates for state {state} retrieved by {current_user.email}")
+        logger.info(f"PT rates for state {state} retrieved for business {business_id} by {current_user.email}")
         return rates
     except Exception as e:
         logger.error(f"Error retrieving PT rates: {str(e)}")
@@ -309,7 +345,8 @@ def get_rates_by_state(
     summary="Calculate Professional Tax"
 )
 def calculate_professional_tax(
-    settings_id: int,
+    business_id: int = Path(...),
+    settings_id: int = Path(...),
     state: str = Query(..., description="State name"),
     salary: float = Query(..., ge=0, description="Salary amount"),
     month: str = Query("All Months", description="Month"),
@@ -322,8 +359,11 @@ def calculate_professional_tax(
     
     **Access:** ADMIN or SUPERADMIN
     """
+    # Validate admin access to the business path param
+    validate_business_access(business_id, current_user, db)
+
     service = ProfessionalTaxService(db)
-    
+
     try:
         tax_amount = service.calculate_tax(settings_id, state, salary, month, gender)
         return {
